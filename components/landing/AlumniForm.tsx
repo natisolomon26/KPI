@@ -1,4 +1,5 @@
-"use client";
+// components/AlumniForm.tsx (with phone number uniqueness validation)
+'use client';
 
 import { useRef, useEffect, useState } from "react";
 import { motion, useAnimation, useInView, Variants } from "framer-motion";
@@ -12,13 +13,16 @@ import {
   CheckCircle,
   Phone,
   MapPin,
-  Building
+  Building,
+  Loader2
 } from "lucide-react";
+import { useToast } from "@/hooks/useToast";
 
 export default function AlumniForm() {
   const controls = useAnimation();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const { showSuccess, showError, showLoading, dismiss } = useToast();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -30,7 +34,8 @@ export default function AlumniForm() {
     currentLocation: ""
   });
 
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isInView) {
@@ -65,27 +70,120 @@ export default function AlumniForm() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  // Validate phone number format (Ethiopian and international)
+  const validatePhoneNumber = (phone: string) => {
+    // Ethiopian phone number patterns: +251XXXXXXXXX, 0XXXXXXXXX, 09XXXXXXXX
+    const ethiopianPattern = /^(\+251|0|09)?[0-9]{9}$/;
+    // International pattern for other countries
+    const internationalPattern = /^\+[1-9]\d{1,14}$/;
+    
+    return ethiopianPattern.test(phone) || internationalPattern.test(phone);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    setIsSubmitted(true);
-    setTimeout(() => setIsSubmitted(false), 3000);
+  // Validate email format
+  const validateEmail = (email: string) => {
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phoneNumber: "",
-      university: "",
-      graduationYear: "",
-      currentLocation: ""
+      ...formData,
+      [name]: value
     });
+    
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Check required fields
+    if (!formData.firstName.trim()) errors.firstName = "First name is required";
+    if (!formData.lastName.trim()) errors.lastName = "Last name is required";
+    if (!formData.email.trim()) {
+      errors.email = "Email address is required";
+    } else if (!validateEmail(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+    
+    if (!formData.phoneNumber.trim()) {
+      errors.phoneNumber = "Phone number is required";
+    } else if (!validatePhoneNumber(formData.phoneNumber)) {
+      errors.phoneNumber = "Please enter a valid phone number (e.g., +251XXXXXXXXX or 09XXXXXXXX)";
+    }
+    
+    if (!formData.university.trim()) errors.university = "University is required";
+    if (!formData.graduationYear) errors.graduationYear = "Graduation year is required";
+    if (!formData.currentLocation.trim()) errors.currentLocation = "Current location is required";
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      showError("Please fix the errors in the form");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = showLoading("Submitting your registration...");
+
+    try {
+      const response = await fetch('/api/registrations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        dismiss(loadingToast);
+        showSuccess("Successfully joined the alumni network!");
+        
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phoneNumber: "",
+          university: "",
+          graduationYear: "",
+          currentLocation: ""
+        });
+        setFieldErrors({});
+      } else {
+        dismiss(loadingToast);
+        
+        // Handle specific error messages
+        if (data.error === "Email already registered") {
+          setFieldErrors(prev => ({ ...prev, email: "This email is already registered" }));
+          showError("This email address is already registered. Please use a different email.");
+        } else if (data.error === "Phone number already registered" || data.error?.includes("phone")) {
+          setFieldErrors(prev => ({ ...prev, phoneNumber: "This phone number is already registered" }));
+          showError("This phone number is already registered. Please use a different phone number.");
+        } else {
+          showError(data.error || "Failed to submit registration. Please try again.");
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      dismiss(loadingToast);
+      showError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const currentYear = new Date().getFullYear();
@@ -93,7 +191,6 @@ export default function AlumniForm() {
 
   return (
     <section id="alumni" className="relative py-24 sm:py-32 overflow-hidden bg-white">
-      
       {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-[5%] w-[400px] h-[400px] bg-sky-500/5 rounded-full blur-[140px]" />
@@ -127,10 +224,18 @@ export default function AlumniForm() {
                       value={formData.firstName}
                       onChange={handleChange}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                        fieldErrors.firstName 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                          : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                      }`}
                       placeholder="John"
                     />
                   </div>
+                  {fieldErrors.firstName && (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</p>
+                  )}
                 </div>
 
                 <div>
@@ -146,10 +251,18 @@ export default function AlumniForm() {
                       value={formData.lastName}
                       onChange={handleChange}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                        fieldErrors.lastName 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                          : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                      }`}
                       placeholder="Doe"
                     />
                   </div>
+                  {fieldErrors.lastName && (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</p>
+                  )}
                 </div>
               </div>
 
@@ -168,10 +281,18 @@ export default function AlumniForm() {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                        fieldErrors.email 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                          : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                      }`}
                       placeholder="john@example.com"
                     />
                   </div>
+                  {fieldErrors.email && (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -187,10 +308,18 @@ export default function AlumniForm() {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                      placeholder="+1 (555) 000-0000"
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                        fieldErrors.phoneNumber 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                          : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                      }`}
+                      placeholder="+251 911 123 456"
                     />
                   </div>
+                  {fieldErrors.phoneNumber && (
+                    <p className="mt-1 text-xs text-red-600">{fieldErrors.phoneNumber}</p>
+                  )}
                 </div>
               </div>
 
@@ -208,10 +337,18 @@ export default function AlumniForm() {
                     value={formData.university}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                    placeholder="e.g., University of Example"
+                    disabled={isSubmitting}
+                    className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                      fieldErrors.university 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                        : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                    }`}
+                    placeholder="e.g., Addis Ababa University"
                   />
                 </div>
+                {fieldErrors.university && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.university}</p>
+                )}
               </div>
 
               {/* Graduation Year */}
@@ -227,7 +364,12 @@ export default function AlumniForm() {
                     value={formData.graduationYear}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 appearance-none cursor-pointer"
+                    disabled={isSubmitting}
+                    className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 appearance-none cursor-pointer disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                      fieldErrors.graduationYear 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                        : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                    }`}
                   >
                     <option value="">Select graduation year</option>
                     {years.map((year) => (
@@ -235,6 +377,9 @@ export default function AlumniForm() {
                     ))}
                   </select>
                 </div>
+                {fieldErrors.graduationYear && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.graduationYear}</p>
+                )}
               </div>
 
               {/* Current Location */}
@@ -251,33 +396,39 @@ export default function AlumniForm() {
                     value={formData.currentLocation}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                    placeholder="City, State/Province, Country"
+                    disabled={isSubmitting}
+                    className={`w-full pl-10 pr-4 py-3 bg-white border rounded-xl focus:outline-none transition-all text-slate-900 placeholder:text-slate-400 disabled:bg-slate-50 disabled:cursor-not-allowed ${
+                      fieldErrors.currentLocation 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100' 
+                        : 'border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100'
+                    }`}
+                    placeholder="City, Country"
                   />
                 </div>
+                {fieldErrors.currentLocation && (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.currentLocation}</p>
+                )}
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-sky-900 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] mt-6"
+                disabled={isSubmitting}
+                className="w-full group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-sky-900 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
               >
-                <span className="text-sm tracking-wide">Join Alumni Network</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm tracking-wide">Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm tracking-wide">Join Alumni Network</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity" />
               </button>
-
-              {/* Success Message */}
-              {isSubmitted && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg"
-                >
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <p className="text-xs text-green-700 font-medium">Successfully joined the alumni network!</p>
-                </motion.div>
-              )}
             </form>
           </motion.div>
 

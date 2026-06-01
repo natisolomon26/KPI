@@ -1,4 +1,4 @@
-// app/login/page.tsx (updated)
+// app/login/page.tsx (fixed)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,7 +12,7 @@ import { useAuthStore } from '@/store/auth.store';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser, setAuthenticated, setLoading, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { setUser, setAuthenticated, isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,14 +20,21 @@ export default function LoginPage() {
     password: '',
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [isClient, setIsClient] = useState(false);
 
-  // Redirect if already authenticated
+  // Mark when client-side rendering starts
   useEffect(() => {
-    if (isAuthenticated) {
-      console.log('Already authenticated, redirecting...');
-      router.push('/dashboard');
+    setIsClient(true);
+    checkAuth();
+  }, [checkAuth]);
+
+  // Redirect if already authenticated (only after client-side check)
+  useEffect(() => {
+    if (isClient && !authLoading && isAuthenticated) {
+      console.log('Already authenticated, redirecting to dashboard...');
+      router.replace('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isClient, authLoading, isAuthenticated, router]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -78,8 +85,8 @@ export default function LoginPage() {
         
         console.log('Login successful, redirecting to dashboard...');
         
-        // Force redirect
-        window.location.href = '/dashboard';
+        // Use router.push instead of window.location.href
+        router.push('/dashboard');
       } else {
         setErrors({ general: data.error || 'Login failed. Please check your credentials.' });
       }
@@ -100,10 +107,15 @@ export default function LoginPage() {
     }
   };
 
+  // Don't render anything until client-side to prevent hydration issues
+  if (!isClient) {
+    return null;
+  }
+
   // Show loading state while checking authentication
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-white to-blue-50">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-slate-600">Loading...</p>
@@ -112,21 +124,34 @@ export default function LoginPage() {
     );
   }
 
+  // If already authenticated, don't render the login form (will redirect)
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-[10%] w-[300px] h-[300px] bg-sky-500/5 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-20 left-[10%] w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[140px] animate-pulse" />
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 rounded-full blur-[120px] mix-blend-multiply" 
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.4, 0.3] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[140px] mix-blend-multiply" 
+        />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.7, type: "spring", stiffness: 100 }}
         className="relative z-10 w-full max-w-md"
       >
-        <Card className="p-8 shadow-2xl">
+        <Card className="p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/60 bg-white/70 backdrop-blur-2xl rounded-3xl">
           {/* Logo */}
           <motion.div 
             initial={{ scale: 0 }}
@@ -134,7 +159,7 @@ export default function LoginPage() {
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
             className="text-center mb-8"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl mb-4 shadow-lg">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl mb-4 shadow-[0_0_20px_rgba(14,165,233,0.3)] ring-4 ring-white/50">
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
@@ -215,13 +240,19 @@ export default function LoginPage() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-6 p-4 bg-gradient-to-r from-sky-50 to-blue-50 rounded-lg border border-sky-100"
+            transition={{ delay: 0.5 }}
+            className="mt-8 p-4 bg-white/50 backdrop-blur-sm rounded-2xl border border-sky-100 shadow-sm"
           >
-            <p className="text-xs font-semibold text-slate-700 text-center mb-2">Demo Credentials:</p>
-            <div className="space-y-1 text-xs text-slate-600 text-center">
-              <p className="font-mono">Email: <span className="text-sky-600">admin@evasue.org</span></p>
-              <p className="font-mono">Password: <span className="text-sky-600">SecurePassword123</span></p>
+            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase text-center mb-3">Demo Credentials</p>
+            <div className="space-y-2 text-sm text-slate-700 text-center flex flex-col items-center">
+              <div className="bg-white/80 px-4 py-1.5 rounded-lg border border-slate-100 shadow-sm w-full max-w-[250px] flex justify-between items-center">
+                <span className="font-medium text-slate-500 text-xs">Email</span>
+                <span className="font-mono text-sky-700 font-semibold">admin@evasue.org</span>
+              </div>
+              <div className="bg-white/80 px-4 py-1.5 rounded-lg border border-slate-100 shadow-sm w-full max-w-[250px] flex justify-between items-center">
+                <span className="font-medium text-slate-500 text-xs">Pass</span>
+                <span className="font-mono text-sky-700 font-semibold">SecurePassword123</span>
+              </div>
             </div>
           </motion.div>
         </Card>

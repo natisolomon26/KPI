@@ -1,15 +1,13 @@
-// services/registration.service.ts (fixed)
+// services/registration.service.ts (alternative - if response.data contains the array directly)
 import { apiClient } from '@/lib/api/client';
 import { RegistrationRequest, Registration } from '@/lib/types/api';
 
 export const registrationService = {
-  // Public endpoint - Submit new registration
   submitRegistration: async (data: RegistrationRequest) => {
     const response = await apiClient.post<Registration>('/registrations', data);
     return response;
   },
   
-  // Protected endpoints - Admin only
   getAllRegistrations: async (params?: { page?: number; limit?: number; search?: string }) => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -19,7 +17,7 @@ export const registrationService = {
     const url = `/registrations${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await apiClient.get<any>(url);
     
-    // Return the data in a consistent format
+    // Return the response directly since it already has the correct structure
     return {
       success: response.success,
       data: response.data || [],

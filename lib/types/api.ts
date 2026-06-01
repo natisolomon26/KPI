@@ -4,6 +4,12 @@ export interface ApiResponse<T = any> {
   message?: string;
   data?: T;
   error?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 export interface ApiError {
@@ -45,9 +51,16 @@ export interface RegistrationRequest {
   currentLocation: string;
 }
 
-export interface Registration extends RegistrationRequest {
-  id: string;
-  status: 'pending' | 'approved' | 'rejected';
+// types/api.ts - update the Registration type
+export interface Registration {
+  _id: string;  // Add this field
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  university: string;
+  graduationYear: string;
+  currentLocation: string;
   registeredAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }

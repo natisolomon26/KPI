@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/registrations - Create new registration (public)
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -87,15 +87,24 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     // Check if email already exists
-    const existingRegistration = await Registration.findOne({ email: body.email });
-    if (existingRegistration) {
+    const existingEmail = await Registration.findOne({ email: body.email });
+    if (existingEmail) {
       return NextResponse.json(
         { error: 'Email already registered' },
         { status: 409 }
       );
     }
 
-    // Create new registration
+    // Check if phone number already exists
+    const existingPhone = await Registration.findOne({ phoneNumber: body.phoneNumber });
+    if (existingPhone) {
+      return NextResponse.json(
+        { error: 'Phone number already registered' },
+        { status: 409 }
+      );
+    }
+
+    // Create new registration (no status field)
     const registration = await Registration.create({
       firstName: body.firstName,
       lastName: body.lastName,
@@ -104,7 +113,6 @@ export async function POST(request: NextRequest) {
       university: body.university,
       graduationYear: body.graduationYear,
       currentLocation: body.currentLocation,
-      status: 'pending',
     });
 
     return NextResponse.json({
@@ -117,8 +125,9 @@ export async function POST(request: NextRequest) {
     
     // Handle duplicate key error
     if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
       return NextResponse.json(
-        { error: 'Email already registered' },
+        { error: `${field} already registered` },
         { status: 409 }
       );
     }

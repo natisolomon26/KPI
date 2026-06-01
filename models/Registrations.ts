@@ -1,4 +1,4 @@
-// models/Registration.ts
+// models/Registration.ts (without status field)
 import mongoose from 'mongoose';
 
 export interface IRegistration {
@@ -9,7 +9,6 @@ export interface IRegistration {
   university: string;
   graduationYear: string;
   currentLocation: string;
-  status: 'pending' | 'approved' | 'rejected';
   registeredAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +43,7 @@ const RegistrationSchema = new mongoose.Schema<IRegistration>(
     phoneNumber: {
       type: String,
       required: [true, 'Phone number is required'],
+      unique: true, // Add this to prevent duplicate phone numbers
       trim: true,
     },
     university: {
@@ -61,11 +61,6 @@ const RegistrationSchema = new mongoose.Schema<IRegistration>(
       required: [true, 'Current location is required'],
       trim: true,
     },
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending',
-    },
   },
   {
     timestamps: {
@@ -77,9 +72,9 @@ const RegistrationSchema = new mongoose.Schema<IRegistration>(
 
 // Create indexes for better query performance
 RegistrationSchema.index({ email: 1 });
-RegistrationSchema.index({ status: 1 });
+RegistrationSchema.index({ phoneNumber: 1 });
 RegistrationSchema.index({ createdAt: -1 });
-RegistrationSchema.index({ firstName: 'text', lastName: 'text', email: 'text' });
+RegistrationSchema.index({ firstName: 'text', lastName: 'text', email: 'text', phoneNumber: 'text' });
 
 // Prevent model recompilation in development
 const Registration = mongoose.models.Registration || mongoose.model<IRegistration>('Registration', RegistrationSchema);

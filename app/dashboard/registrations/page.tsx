@@ -1,4 +1,4 @@
-// app/dashboard/registrations/page.tsx (fixed table alignment)
+// app/dashboard/registrations/page.tsx (fixed with proper typing)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -30,6 +30,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { useRegistrations } from '@/hooks/useRegistrations';
 import { useRegistrationStore } from '@/store/registration.store';
 import { format } from 'date-fns';
+import { Registration } from '@/lib/types/api';
+import toast from 'react-hot-toast';
 
 // Generate years for dropdown (last 50 years)
 const currentYear = new Date().getFullYear();
@@ -38,12 +40,12 @@ const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 export default function RegistrationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<any>({});
+  const [editFormData, setEditFormData] = useState<Partial<Registration>>({});
   
   // Add manual form state
   const [addFormData, setAddFormData] = useState({
@@ -66,7 +68,7 @@ export default function RegistrationsPage() {
   const { refetch, isFetching } = useGetRegistrations(searchTerm, currentPage);
 
   // Calculate stats safely
-  const registrationsArray = registrations || [];
+  const registrationsArray = (registrations as Registration[]) || [];
   
   const stats = {
     total: registrationsArray.length,
@@ -80,12 +82,12 @@ export default function RegistrationsPage() {
     countries: [...new Set(registrationsArray.map(r => r?.currentLocation?.split(',')[1]?.trim() || 'Ethiopia').filter(Boolean))].length,
   };
 
-  const handleViewDetails = (registration: any) => {
+  const handleViewDetails = (registration: Registration) => {
     setSelectedRegistration(registration);
     setIsViewModalOpen(true);
   };
 
-  const handleEdit = (registration: any) => {
+  const handleEdit = (registration: Registration) => {
     setSelectedRegistration(registration);
     setEditFormData({
       firstName: registration.firstName,
@@ -103,24 +105,34 @@ export default function RegistrationsPage() {
     e.preventDefault();
     if (!selectedRegistration) return;
     
-    const result = await updateRegistration.mutateAsync({
-      id: selectedRegistration._id,
-      data: editFormData
-    });
-    
-    if (result.success) {
-      setIsEditModalOpen(false);
-      refetch();
+    try {
+      const result = await updateRegistration.mutateAsync({
+        id: selectedRegistration._id,
+        data: editFormData
+      });
+      
+      if (result.success) {
+        toast.success('Registration updated successfully');
+        setIsEditModalOpen(false);
+        refetch();
+      }
+    } catch (error) {
+      toast.error('Failed to update registration');
     }
   };
 
   const handleDelete = async () => {
     if (!selectedRegistration) return;
     
-    const result = await deleteRegistration.mutateAsync(selectedRegistration._id);
-    if (result.success) {
-      setIsDeleteModalOpen(false);
-      refetch();
+    try {
+      const result = await deleteRegistration.mutateAsync(selectedRegistration._id);
+      if (result.success) {
+        toast.success('Registration deleted successfully');
+        setIsDeleteModalOpen(false);
+        refetch();
+      }
+    } catch (error) {
+      toast.error('Failed to delete registration');
     }
   };
 
@@ -177,6 +189,7 @@ export default function RegistrationsPage() {
       const result = await submitRegistration.mutateAsync(addFormData);
       
       if (result.success) {
+        toast.success('Registration added successfully');
         setSubmitSuccess(true);
         setTimeout(() => {
           setIsAddModalOpen(false);
@@ -186,6 +199,7 @@ export default function RegistrationsPage() {
       }
     } catch (error: any) {
       console.error('Error adding registration:', error);
+      toast.error(error.response?.data?.error || 'Failed to add registration');
       if (error.response?.data?.error) {
         setAddFormErrors({ general: error.response.data.error });
       } else {
@@ -479,7 +493,7 @@ export default function RegistrationsPage() {
       </Card>
 
       {/* Rest of your modals remain the same */}
-      {/* View Details Modal */}
+      {/* View Details Modal - update to use Registration type */}
       <Modal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}

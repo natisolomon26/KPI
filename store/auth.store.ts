@@ -1,4 +1,4 @@
-// stores/auth.store.ts (simpler version)
+// store/auth.store.ts (fixed)
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
@@ -33,15 +33,18 @@ export const useAuthStore = create<AuthState>()(
       setLoading: (value) => set({ isLoading: value }),
       
       checkAuth: () => {
+        // Only run on client side
+        if (typeof window === 'undefined') return;
+        
         console.log('Checking authentication...');
         
         // Check if token exists in cookies
-        const hasCookieToken = typeof document !== 'undefined' && 
-          document.cookie.split(';').some(cookie => cookie.trim().startsWith('auth-token='));
+        const hasCookieToken = document.cookie.split(';').some(cookie => 
+          cookie.trim().startsWith('auth-token=')
+        );
         
         // Check if token exists in localStorage
-        const hasLocalToken = typeof localStorage !== 'undefined' && 
-          localStorage.getItem('auth-token');
+        const hasLocalToken = localStorage.getItem('auth-token');
         
         const isAuth = hasCookieToken || !!hasLocalToken;
         
@@ -54,14 +57,15 @@ export const useAuthStore = create<AuthState>()(
       },
       
       logout: () => {
-        if (typeof document !== 'undefined') {
-          // Clear cookie
-          document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-          // Clear localStorage
-          localStorage.removeItem('auth-token');
-          // Clear persisted store
-          localStorage.removeItem('auth-storage');
-        }
+        if (typeof window === 'undefined') return;
+        
+        // Clear cookie
+        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        // Clear localStorage
+        localStorage.removeItem('auth-token');
+        // Clear persisted store
+        localStorage.removeItem('auth-storage');
+        
         set({ 
           user: null, 
           isAuthenticated: false, 
@@ -72,11 +76,10 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
-      // Omit partialize to store the entire state, or use it without type annotation
       partialize: (state) => ({ 
         user: state.user, 
         isAuthenticated: state.isAuthenticated 
-      }) as any, // Type assertion to bypass strict type checking
+      }),
     }
   )
 );

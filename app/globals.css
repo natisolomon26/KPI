@@ -11,3 +11,39 @@
   justify-content: center;
   z-index: 50;
 }
+
+/* app/globals.css - add these styles */
+@keyframes slideInDown {
+  from {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutUp {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+  }
+}
+
+.go3957128147 {
+  animation: slideInDown 0.3s ease-out forwards !important;
+}
+
+.go1209436062 {
+  animation: slideOutUp 0.3s ease-in forwards !important;
+}
+
+/* Toast container positioning */
+.go3458089122 {
+  top: 80px !important;
+}
