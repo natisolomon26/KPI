@@ -120,7 +120,7 @@ export default function WorkWithUs() {
       )}
 
       {/* Centered Card - Left Aligned Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-12">
         <motion.div
           ref={ref}
           variants={fadeUp}
@@ -130,7 +130,7 @@ export default function WorkWithUs() {
         >
           <div className="w-full max-w-xl">
             {/* Glass Card */}
-            <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden p-6 sm:p-8">
+            <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-xl overflow-hidden p-5 sm:p-8">
               
               {/* Card Inner Glow */}
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />

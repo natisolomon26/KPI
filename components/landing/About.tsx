@@ -69,7 +69,7 @@ export default function About() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           
           {/* Left Side - Image */}
           <motion.div
@@ -85,7 +85,7 @@ export default function About() {
               <div className="absolute -bottom-6 -right-6 w-40 h-40 bg-blue-500/20 rounded-full blur-2xl" />
               
               {/* Main Image */}
-              <div className="relative w-full h-[400px] md:h-[450px] bg-gradient-to-br from-sky-100 to-blue-100">
+              <div className="relative w-full h-[300px] sm:h-[400px] md:h-[450px] bg-gradient-to-br from-sky-100 to-blue-100">
                 <Image
                   src="/image/back5.JPG"
                   alt="Community gathering"

@@ -28,26 +28,26 @@ export const Footer: React.FC = () => {
 
             </p>
 
-            <p className="text-gray-600 text-xs">
+            <p className="text-gray-600 text-[10px] sm:text-xs">
               የኢትዮጵያ ወንጌላዊያን ተማሪዎችና ምሩቃን ማህበር (ኢቫሱ)
             </p>
 
-            <p className="text-gray-600 text-xs">
+            <p className="text-gray-600 text-[10px] sm:text-xs">
               EvaSUE is a faith-based organization registered in Ethiopia.
             </p>
-            <p className="text-gray-600 text-xs">
+            <p className="text-gray-600 text-[10px] sm:text-xs">
               EvaSUE-USA is a registered 501(c)3 nonprofit organization in the USA.
             </p>
             <a
               href="https://ifesworld.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="block text-gray-600 text-xs hover:text-blue-600"
+              className="block text-gray-600 text-[10px] sm:text-xs hover:text-blue-600"
             >
              A Member of the International Fellowship of Evangelical Students (IFES).
            </a>
 
-            <p className="text-gray-600 text-xs">
+            <p className="text-gray-600 text-[10px] sm:text-xs">
               We are committed to handling all your data appropriately. See our Privacy Policy|Terms of Use
             </p>
           </motion.div>

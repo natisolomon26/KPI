@@ -165,7 +165,7 @@ export default function Resources() {
           {/* Cards Grid - Clean 2x3 Layout */}
           <motion.div
             variants={staggerContainer}
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
           >
             {resources.map((resource, index) => {
               const Icon = resource.icon;
@@ -178,7 +178,7 @@ export default function Resources() {
                   whileHover={{ y: -4 }}
                   className="group"
                 >
-                  <div className="h-full p-6 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:shadow-md">
+                  <div className="flex flex-col h-full p-6 rounded-xl bg-white border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:shadow-md">
                     
                     {/* Icon */}
                     <div className={`inline-flex p-2.5 rounded-lg ${colorStyles} transition-colors duration-300 mb-4`}>
@@ -203,7 +203,7 @@ export default function Resources() {
                     {/* Learn More Link */}
                     <a 
                       href={resource.link}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors group/link"
+                      className="mt-auto inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors group/link"
                     >
                       <span>Learn more</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />

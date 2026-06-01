@@ -26,7 +26,7 @@ export default function Header() {
     <>
       <header
         className={`
-          fixed top-4 left-1/2 -translate-x-1/2 w-[90%] md:w-[80%] lg:w-[70%] z-50
+          fixed top-4 left-1/2 -translate-x-1/2 w-[95%] sm:w-[90%] md:w-[80%] lg:w-[70%] z-50
           transition-all duration-300 ease-in-out px-6 py-2.5 rounded-full border
           ${isScrolled 
             ? "bg-sky-950/80 backdrop-blur-md shadow-lg border-white/10" 
@@ -91,7 +91,7 @@ export default function Header() {
               key={item.name}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="text-3xl font-black text-white hover:text-sky-500 uppercase tracking-tighter transition-all"
+              className="text-2xl sm:text-3xl font-black text-white hover:text-sky-500 uppercase tracking-tighter transition-all"
             >
               {item.name}
             </Link>

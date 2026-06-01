@@ -38,17 +38,17 @@ export default function LoginPage() {
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
-    
+
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -78,13 +78,13 @@ export default function LoginPage() {
         document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
         // Also store in localStorage as backup
         localStorage.setItem('auth-token', data.token);
-        
+
         // Update auth store
         setUser(data.user);
         setAuthenticated(true);
-        
+
         console.log('Login successful, redirecting to dashboard...');
-        
+
         // Use router.push instead of window.location.href
         router.push('/dashboard');
       } else {
@@ -133,15 +133,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 rounded-full blur-[120px] mix-blend-multiply" 
+          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 rounded-full blur-[120px] mix-blend-multiply"
         />
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.4, 0.3] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[140px] mix-blend-multiply" 
+          className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[140px] mix-blend-multiply"
         />
       </div>
 
@@ -153,7 +153,7 @@ export default function LoginPage() {
       >
         <Card className="p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/60 bg-white/70 backdrop-blur-2xl rounded-3xl">
           {/* Logo */}
-          <motion.div 
+          <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
@@ -236,25 +236,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Demo Credentials */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-8 p-4 bg-white/50 backdrop-blur-sm rounded-2xl border border-sky-100 shadow-sm"
-          >
-            <p className="text-xs font-bold tracking-wider text-slate-500 uppercase text-center mb-3">Demo Credentials</p>
-            <div className="space-y-2 text-sm text-slate-700 text-center flex flex-col items-center">
-              <div className="bg-white/80 px-4 py-1.5 rounded-lg border border-slate-100 shadow-sm w-full max-w-[250px] flex justify-between items-center">
-                <span className="font-medium text-slate-500 text-xs">Email</span>
-                <span className="font-mono text-sky-700 font-semibold">admin@evasue.org</span>
-              </div>
-              <div className="bg-white/80 px-4 py-1.5 rounded-lg border border-slate-100 shadow-sm w-full max-w-[250px] flex justify-between items-center">
-                <span className="font-medium text-slate-500 text-xs">Pass</span>
-                <span className="font-mono text-sky-700 font-semibold">SecurePassword123</span>
-              </div>
-            </div>
-          </motion.div>
         </Card>
       </motion.div>
     </div>

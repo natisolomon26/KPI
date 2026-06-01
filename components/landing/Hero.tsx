@@ -237,7 +237,7 @@ const impactVariants = {
 
 <motion.div
   variants={fadeLeft}
-  className="flex flex-col sm:flex-row items-center gap-4"
+  className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
 >
   <motion.button
     onClick={scrollToAlumni}
@@ -248,11 +248,11 @@ const impactVariants = {
     Join the Network
   </motion.button>
 
-  <Link href="https://evasue.net" target="_blank" rel="noopener noreferrer">
+  <Link href="https://evasue.net" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
     <motion.button
       whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.12)" }}
       whileTap={{ scale: 0.98 }}
-      className="w-full sm:w-auto px-7 py-3 bg-white/10 backdrop-blur-md text-white font-bold rounded-full border border-white/20 transition-all uppercase tracking-wider text-xs hover:bg-white/15 cursor-pointer"
+      className="w-full sm:w-auto px-7 py-3 bg-white/10 backdrop-blur-md text-white font-bold rounded-full border border-white/20 transition-all uppercase tracking-wider text-xs hover:bg-white/15 cursor-pointer block"
     >
       Give Back
     </motion.button>
@@ -331,18 +331,16 @@ const impactVariants = {
             </div>
           </motion.div>
 
-          {/* Mobile version - Simple grid for smaller screens */}
-          <div className="lg:hidden grid grid-cols-2 gap-4 mt-6">
-            {[1, 2, 3].map((idx) => (
-              <div key={idx} className="relative h-40 rounded-2xl overflow-hidden shadow-xl border border-white/20">
-                <Image
-                  src="/image/back5.JPG"
-                  alt={`Gallery image ${idx}`}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ))}
+          {/* Mobile version - Single image for smaller screens */}
+          <div className="lg:hidden mt-8">
+            <div className="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden shadow-xl border border-white/20">
+              <Image
+                src="/image/1.jpg"
+                alt="Graduates gathering"
+                fill
+                className="object-cover"
+              />
+            </div>
           </div>
         </div>
       </div>
