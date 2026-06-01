@@ -1,7 +1,7 @@
 // app/api/registrations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Registration from '@/models/Registration';
+import Registration from '@/models/Registrations';
 import { verifyAuth } from '@/lib/auth';
 
 // GET /api/registrations - Get all registrations (protected)

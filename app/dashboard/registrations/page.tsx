@@ -1,13 +1,11 @@
-// app/dashboard/registrations/page.tsx (updated with Add Manual modal)
+// app/dashboard/registrations/page.tsx (fixed table alignment)
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
-  Filter, 
   Eye, 
-  MoreVertical, 
   Download,
   RefreshCw,
   UserPlus,
@@ -21,77 +19,17 @@ import {
   Users,
   TrendingUp,
   Globe,
-  X,
-  CheckCircle,
-  AlertCircle
+  Trash2,
+  Edit,
+  CheckCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-
-// Mock data - Replace with actual API data
-const mockRegistrations = [
-  {
-    id: 'REG-001',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    phoneNumber: '+251 911 123 456',
-    university: 'Addis Ababa University',
-    graduationYear: '2020',
-    currentLocation: 'Addis Ababa, Ethiopia',
-    status: 'pending',
-    registeredAt: '2024-01-15T10:30:00Z',
-  },
-  {
-    id: 'REG-002',
-    firstName: 'Sarah',
-    lastName: 'Smith',
-    email: 'sarah.smith@example.com',
-    phoneNumber: '+251 922 234 567',
-    university: 'Jimma University',
-    graduationYear: '2019',
-    currentLocation: 'Jimma, Ethiopia',
-    status: 'approved',
-    registeredAt: '2024-01-14T15:45:00Z',
-  },
-  {
-    id: 'REG-003',
-    firstName: 'Michael',
-    lastName: 'Brown',
-    email: 'michael.b@example.com',
-    phoneNumber: '+251 933 345 678',
-    university: 'Bahir Dar University',
-    graduationYear: '2021',
-    currentLocation: 'Bahir Dar, Ethiopia',
-    status: 'pending',
-    registeredAt: '2024-01-13T09:15:00Z',
-  },
-  {
-    id: 'REG-004',
-    firstName: 'Emily',
-    lastName: 'Johnson',
-    email: 'emily.j@example.com',
-    phoneNumber: '+251 944 456 789',
-    university: 'Hawassa University',
-    graduationYear: '2018',
-    currentLocation: 'Hawassa, Ethiopia',
-    status: 'approved',
-    registeredAt: '2024-01-12T14:20:00Z',
-  },
-  {
-    id: 'REG-005',
-    firstName: 'David',
-    lastName: 'Wilson',
-    email: 'david.w@example.com',
-    phoneNumber: '+251 955 567 890',
-    university: 'Addis Ababa University',
-    graduationYear: '2022',
-    currentLocation: 'Addis Ababa, Ethiopia',
-    status: 'pending',
-    registeredAt: '2024-01-11T11:00:00Z',
-  },
-];
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
+import { useRegistrations } from '@/hooks/useRegistrations';
+import { useRegistrationStore } from '@/store/registration.store';
+import { format } from 'date-fns';
 
 // Generate years for dropdown (last 50 years)
 const currentYear = new Date().getFullYear();
@@ -102,13 +40,13 @@ export default function RegistrationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [itemsPerPage] = useState(10);
+  const [editFormData, setEditFormData] = useState<any>({});
   
-  // Form state
-  const [formData, setFormData] = useState({
+  // Add manual form state
+  const [addFormData, setAddFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
@@ -117,36 +55,29 @@ export default function RegistrationsPage() {
     graduationYear: '',
     currentLocation: '',
   });
+  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const { useGetRegistrations, deleteRegistration, updateRegistration, submitRegistration } = useRegistrations();
+  const { registrations, isLoading, totalPages } = useRegistrationStore();
+  
+  // Fetch registrations
+  const { refetch, isFetching } = useGetRegistrations(searchTerm, currentPage);
 
-  // Filter registrations (only search, no status filter)
-  const filteredRegistrations = useMemo(() => {
-    return mockRegistrations.filter(reg => {
-      const matchesSearch = 
-        `${reg.firstName} ${reg.lastName} ${reg.email} ${reg.university}`.toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      return matchesSearch;
-    });
-  }, [searchTerm]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredRegistrations.length / itemsPerPage);
-  const paginatedRegistrations = filteredRegistrations.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Stats
+  // Calculate stats safely
+  const registrationsArray = registrations || [];
+  
   const stats = {
-    total: mockRegistrations.length,
-    universities: [...new Set(mockRegistrations.map(r => r.university))].length,
-    thisMonth: mockRegistrations.filter(r => {
+    total: registrationsArray.length,
+    universities: [...new Set(registrationsArray.map(r => r?.university).filter(Boolean))].length,
+    thisMonth: registrationsArray.filter(r => {
+      if (!r?.registeredAt) return false;
       const regDate = new Date(r.registeredAt);
       const now = new Date();
       return regDate.getMonth() === now.getMonth() && regDate.getFullYear() === now.getFullYear();
     }).length,
-    countries: [...new Set(mockRegistrations.map(r => r.currentLocation.split(',')[1]?.trim() || 'Ethiopia'))].length,
+    countries: [...new Set(registrationsArray.map(r => r?.currentLocation?.split(',')[1]?.trim() || 'Ethiopia').filter(Boolean))].length,
   };
 
   const handleViewDetails = (registration: any) => {
@@ -154,8 +85,47 @@ export default function RegistrationsPage() {
     setIsViewModalOpen(true);
   };
 
+  const handleEdit = (registration: any) => {
+    setSelectedRegistration(registration);
+    setEditFormData({
+      firstName: registration.firstName,
+      lastName: registration.lastName,
+      email: registration.email,
+      phoneNumber: registration.phoneNumber,
+      university: registration.university,
+      graduationYear: registration.graduationYear,
+      currentLocation: registration.currentLocation,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRegistration) return;
+    
+    const result = await updateRegistration.mutateAsync({
+      id: selectedRegistration._id,
+      data: editFormData
+    });
+    
+    if (result.success) {
+      setIsEditModalOpen(false);
+      refetch();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRegistration) return;
+    
+    const result = await deleteRegistration.mutateAsync(selectedRegistration._id);
+    if (result.success) {
+      setIsDeleteModalOpen(false);
+      refetch();
+    }
+  };
+
   const handleOpenAddModal = () => {
-    setFormData({
+    setAddFormData({
       firstName: '',
       lastName: '',
       email: '',
@@ -164,64 +134,82 @@ export default function RegistrationsPage() {
       graduationYear: '',
       currentLocation: '',
     });
-    setFormErrors({});
+    setAddFormErrors({});
     setSubmitSuccess(false);
     setIsAddModalOpen(true);
   };
 
-  const validateForm = () => {
+  const validateAddForm = () => {
     const errors: Record<string, string> = {};
     
-    if (!formData.firstName.trim()) errors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
-    if (!formData.email.trim()) {
+    if (!addFormData.firstName.trim()) errors.firstName = 'First name is required';
+    if (!addFormData.lastName.trim()) errors.lastName = 'Last name is required';
+    if (!addFormData.email.trim()) {
       errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(addFormData.email)) {
       errors.email = 'Email is invalid';
     }
-    if (!formData.phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
-    if (!formData.university.trim()) errors.university = 'University is required';
-    if (!formData.graduationYear) errors.graduationYear = 'Graduation year is required';
-    if (!formData.currentLocation.trim()) errors.currentLocation = 'Current location is required';
+    if (!addFormData.phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
+    if (!addFormData.university.trim()) errors.university = 'University is required';
+    if (!addFormData.graduationYear) errors.graduationYear = 'Graduation year is required';
+    if (!addFormData.currentLocation.trim()) errors.currentLocation = 'Current location is required';
     
-    setFormErrors(errors);
+    setAddFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleAddInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    setAddFormData(prev => ({ ...prev, [name]: value }));
+    if (addFormErrors[name]) {
+      setAddFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleSubmitManualRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateAddForm()) return;
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Manual registration submitted:', formData);
-      setIsSubmitting(false);
-      setSubmitSuccess(true);
+    try {
+      const result = await submitRegistration.mutateAsync(addFormData);
       
-      // Close modal after success
-      setTimeout(() => {
-        setIsAddModalOpen(false);
-        setSubmitSuccess(false);
-        // Refresh the list here (would be an API call in production)
-      }, 1500);
-    }, 1500);
+      if (result.success) {
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          setIsAddModalOpen(false);
+          setSubmitSuccess(false);
+          refetch();
+        }, 1500);
+      }
+    } catch (error: any) {
+      console.error('Error adding registration:', error);
+      if (error.response?.data?.error) {
+        setAddFormErrors({ general: error.response.data.error });
+      } else {
+        setAddFormErrors({ general: 'Failed to add registration. Please try again.' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== undefined) {
+        refetch();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm, refetch]);
+
+  const loading = isLoading || isFetching;
 
   return (
     <div className="space-y-6">
@@ -229,7 +217,7 @@ export default function RegistrationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Registrations</h1>
-          <p className="text-slate-600 mt-1">View and manage alumni registration requests</p>
+          <p className="text-slate-600 mt-1">View and manage alumni registration records</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="gap-2">
@@ -250,7 +238,6 @@ export default function RegistrationsPage() {
             <div>
               <p className="text-sm text-slate-600">Total Registrations</p>
               <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-              <p className="text-xs text-green-600 mt-1">+12% from last month</p>
             </div>
             <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-sky-600" />
@@ -263,7 +250,6 @@ export default function RegistrationsPage() {
             <div>
               <p className="text-sm text-slate-600">Partner Universities</p>
               <p className="text-2xl font-bold text-slate-900">{stats.universities}</p>
-              <p className="text-xs text-emerald-600 mt-1">Growing network</p>
             </div>
             <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-emerald-600" />
@@ -276,7 +262,6 @@ export default function RegistrationsPage() {
             <div>
               <p className="text-sm text-slate-600">This Month</p>
               <p className="text-2xl font-bold text-slate-900">{stats.thisMonth}</p>
-              <p className="text-xs text-blue-600 mt-1">New registrations</p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -289,7 +274,6 @@ export default function RegistrationsPage() {
             <div>
               <p className="text-sm text-slate-600">Countries</p>
               <p className="text-2xl font-bold text-slate-900">{stats.countries}</p>
-              <p className="text-xs text-purple-600 mt-1">Global reach</p>
             </div>
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <Globe className="w-5 h-5 text-purple-600" />
@@ -298,7 +282,7 @@ export default function RegistrationsPage() {
         </Card>
       </div>
 
-      {/* Search and Filters */}
+      {/* Search */}
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
@@ -311,128 +295,141 @@ export default function RegistrationsPage() {
               className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             />
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" className="gap-2">
-              <Filter className="w-4 h-4" />
-              Advanced Filters
-            </Button>
-            <Button variant="ghost" className="gap-2" onClick={() => {
-              setSearchTerm('');
-            }}>
-              <RefreshCw className="w-4 h-4" />
-              Reset
-            </Button>
-          </div>
+          <Button variant="ghost" className="gap-2" onClick={() => {
+            setSearchTerm('');
+            setCurrentPage(1);
+            refetch();
+          }}>
+            <RefreshCw className="w-4 h-4" />
+            Reset
+          </Button>
         </div>
       </Card>
 
       {/* Registrations Table */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Applicant
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Education
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-4 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-left">Applicant</TableHead>
+              <TableHead className="text-left">Contact</TableHead>
+              <TableHead className="text-left">Education</TableHead>
+              <TableHead className="text-left">Location</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <td colSpan={5} className="px-6 py-12 text-center">
+                  <div className="flex items-center justify-center">
+                    <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="ml-3 text-slate-600">Loading registrations...</span>
+                  </div>
+                </td>
+              </TableRow>
+            ) : registrationsArray.length === 0 ? (
+              <TableRow>
+                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  No registrations found
+                </td>
+              </TableRow>
+            ) : (
               <AnimatePresence mode="wait">
-                {paginatedRegistrations.map((reg, index) => {
-                  return (
-                    <motion.tr
-                      key={reg.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="hover:bg-slate-50 transition-colors group"
-                    >
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-sky-100 to-sky-200 rounded-full flex items-center justify-center">
-                            <span className="text-sky-700 font-semibold text-sm">
-                              {getInitials(reg.firstName, reg.lastName)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-900">
-                              {reg.firstName} {reg.lastName}
-                            </p>
-                            <p className="text-xs text-slate-500">ID: {reg.id}</p>
-                          </div>
+                {registrationsArray.map((reg, index) => (
+                  <motion.tr
+                    key={reg._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-slate-50 transition-colors group"
+                  >
+                    <TableCell className="text-left">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-sky-100 to-sky-200 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-sky-700 font-semibold text-sm">
+                            {getInitials(reg.firstName, reg.lastName)}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Mail className="w-3 h-3" />
-                            {reg.email}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Phone className="w-3 h-3" />
-                            {reg.phoneNumber}
-                          </div>
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {reg.firstName} {reg.lastName}
+                          </p>
+                          <p className="text-xs text-slate-500">ID: {reg._id?.slice(-8)}</p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <GraduationCap className="w-3 h-3" />
-                            {reg.university}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                            <Calendar className="w-3 h-3" />
-                            Class of {reg.graduationYear}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <MapPin className="w-3 h-3" />
-                          {reg.currentLocation}
+                          <Mail className="w-3 h-3 flex-shrink-0" />
+                          <span className="break-all">{reg.email}</span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleViewDetails(reg)}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4 text-slate-600" />
-                          </button>
-                          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                            <MoreVertical className="w-4 h-4 text-slate-600" />
-                          </button>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Phone className="w-3 h-3 flex-shrink-0" />
+                          <span>{reg.phoneNumber}</span>
                         </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <GraduationCap className="w-3 h-3 flex-shrink-0" />
+                          <span>{reg.university}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Calendar className="w-3 h-3 flex-shrink-0" />
+                          <span>Class of {reg.graduationYear}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <MapPin className="w-3 h-3 flex-shrink-0" />
+                        <span>{reg.currentLocation}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleViewDetails(reg)}
+                          className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4 text-slate-600" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(reg)}
+                          className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4 text-slate-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedRegistration(reg);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </motion.tr>
+                ))}
               </AnimatePresence>
-            </tbody>
-          </table>
-        </div>
+            )}
+          </TableBody>
+        </Table>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {totalPages > 1 && !loading && (
           <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
             <p className="text-sm text-slate-600">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredRegistrations.length)} of {filteredRegistrations.length} results
+              Page {currentPage} of {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -443,19 +440,31 @@ export default function RegistrationsPage() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <div className="flex gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                      currentPage === page
-                        ? 'bg-sky-600 text-white'
-                        : 'hover:bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-sky-600 text-white'
+                          : 'hover:bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
@@ -469,6 +478,7 @@ export default function RegistrationsPage() {
         )}
       </Card>
 
+      {/* Rest of your modals remain the same */}
       {/* View Details Modal */}
       <Modal
         isOpen={isViewModalOpen}
@@ -478,7 +488,6 @@ export default function RegistrationsPage() {
       >
         {selectedRegistration && (
           <div className="space-y-6">
-            {/* Profile Header */}
             <div className="flex items-center gap-4 pb-4 border-b border-slate-200">
               <div className="w-20 h-20 bg-gradient-to-br from-sky-100 to-sky-200 rounded-full flex items-center justify-center">
                 <span className="text-sky-700 font-bold text-2xl">
@@ -489,11 +498,10 @@ export default function RegistrationsPage() {
                 <h3 className="text-xl font-bold text-slate-900">
                   {selectedRegistration.firstName} {selectedRegistration.lastName}
                 </h3>
-                <p className="text-slate-600">ID: {selectedRegistration.id}</p>
+                <p className="text-slate-600">ID: {selectedRegistration._id}</p>
               </div>
             </div>
 
-            {/* Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <div>
@@ -536,13 +544,12 @@ export default function RegistrationsPage() {
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered On</label>
                   <p className="mt-1 text-slate-900">
-                    {new Date(selectedRegistration.registeredAt).toLocaleString()}
+                    {selectedRegistration.registeredAt ? format(new Date(selectedRegistration.registeredAt), 'PPP p') : 'N/A'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
               <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
                 Close
@@ -552,6 +559,130 @@ export default function RegistrationsPage() {
         )}
       </Modal>
 
+      {/* Edit Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Registration"
+        size="lg"
+      >
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">First Name</label>
+              <input
+                type="text"
+                value={editFormData.firstName || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Last Name</label>
+              <input
+                type="text"
+                value={editFormData.lastName || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={editFormData.email || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              value={editFormData.phoneNumber || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+              required
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">University</label>
+              <input
+                type="text"
+                value={editFormData.university || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, university: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Graduation Year</label>
+              <input
+                type="text"
+                value={editFormData.graduationYear || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, graduationYear: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Current Location</label>
+            <input
+              type="text"
+              value={editFormData.currentLocation || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, currentLocation: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+              required
+            />
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={updateRegistration.isPending}>
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Registration"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600">
+            Are you sure you want to delete the registration for{' '}
+            <span className="font-semibold text-slate-900">
+              {selectedRegistration?.firstName} {selectedRegistration?.lastName}
+            </span>
+            ? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete} isLoading={deleteRegistration.isPending}>
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Add Manual Registration Modal */}
       <Modal
         isOpen={isAddModalOpen}
@@ -559,7 +690,7 @@ export default function RegistrationsPage() {
         title="Add Manual Registration"
         size="lg"
       >
-        <form onSubmit={handleSubmitManualRegistration} className="space-y-6">
+        <form onSubmit={handleSubmitManualRegistration} className="space-y-5">
           {submitSuccess ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -570,7 +701,6 @@ export default function RegistrationsPage() {
             </div>
           ) : (
             <>
-              {/* Name Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -579,15 +709,15 @@ export default function RegistrationsPage() {
                   <input
                     type="text"
                     name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
+                    value={addFormData.firstName}
+                    onChange={handleAddInputChange}
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      formErrors.firstName ? 'border-red-500' : 'border-slate-200'
+                      addFormErrors.firstName ? 'border-red-500' : 'border-slate-200'
                     }`}
                     placeholder="Enter first name"
                   />
-                  {formErrors.firstName && (
-                    <p className="mt-1 text-xs text-red-600">{formErrors.firstName}</p>
+                  {addFormErrors.firstName && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.firstName}</p>
                   )}
                 </div>
                 <div>
@@ -597,20 +727,19 @@ export default function RegistrationsPage() {
                   <input
                     type="text"
                     name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
+                    value={addFormData.lastName}
+                    onChange={handleAddInputChange}
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      formErrors.lastName ? 'border-red-500' : 'border-slate-200'
+                      addFormErrors.lastName ? 'border-red-500' : 'border-slate-200'
                     }`}
                     placeholder="Enter last name"
                   />
-                  {formErrors.lastName && (
-                    <p className="mt-1 text-xs text-red-600">{formErrors.lastName}</p>
+                  {addFormErrors.lastName && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.lastName}</p>
                   )}
                 </div>
               </div>
 
-              {/* Email and Phone */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -621,16 +750,16 @@ export default function RegistrationsPage() {
                     <input
                       type="email"
                       name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
+                      value={addFormData.email}
+                      onChange={handleAddInputChange}
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        formErrors.email ? 'border-red-500' : 'border-slate-200'
+                        addFormErrors.email ? 'border-red-500' : 'border-slate-200'
                       }`}
                       placeholder="john@example.com"
                     />
                   </div>
-                  {formErrors.email && (
-                    <p className="mt-1 text-xs text-red-600">{formErrors.email}</p>
+                  {addFormErrors.email && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.email}</p>
                   )}
                 </div>
                 <div>
@@ -642,21 +771,20 @@ export default function RegistrationsPage() {
                     <input
                       type="tel"
                       name="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={handleInputChange}
+                      value={addFormData.phoneNumber}
+                      onChange={handleAddInputChange}
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        formErrors.phoneNumber ? 'border-red-500' : 'border-slate-200'
+                        addFormErrors.phoneNumber ? 'border-red-500' : 'border-slate-200'
                       }`}
                       placeholder="+251 XXX XXX XXX"
                     />
                   </div>
-                  {formErrors.phoneNumber && (
-                    <p className="mt-1 text-xs text-red-600">{formErrors.phoneNumber}</p>
+                  {addFormErrors.phoneNumber && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.phoneNumber}</p>
                   )}
                 </div>
               </div>
 
-              {/* University and Graduation Year */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -667,16 +795,16 @@ export default function RegistrationsPage() {
                     <input
                       type="text"
                       name="university"
-                      value={formData.university}
-                      onChange={handleInputChange}
+                      value={addFormData.university}
+                      onChange={handleAddInputChange}
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        formErrors.university ? 'border-red-500' : 'border-slate-200'
+                        addFormErrors.university ? 'border-red-500' : 'border-slate-200'
                       }`}
                       placeholder="e.g., Addis Ababa University"
                     />
                   </div>
-                  {formErrors.university && (
-                    <p className="mt-1 text-xs text-red-600">{formErrors.university}</p>
+                  {addFormErrors.university && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.university}</p>
                   )}
                 </div>
                 <div>
@@ -687,10 +815,10 @@ export default function RegistrationsPage() {
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <select
                       name="graduationYear"
-                      value={formData.graduationYear}
-                      onChange={handleInputChange}
+                      value={addFormData.graduationYear}
+                      onChange={handleAddInputChange}
                       className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 appearance-none cursor-pointer ${
-                        formErrors.graduationYear ? 'border-red-500' : 'border-slate-200'
+                        addFormErrors.graduationYear ? 'border-red-500' : 'border-slate-200'
                       }`}
                     >
                       <option value="">Select year</option>
@@ -699,13 +827,12 @@ export default function RegistrationsPage() {
                       ))}
                     </select>
                   </div>
-                  {formErrors.graduationYear && (
-                    <p className="mt-1 text-xs text-red-600">{formErrors.graduationYear}</p>
+                  {addFormErrors.graduationYear && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.graduationYear}</p>
                   )}
                 </div>
               </div>
 
-              {/* Current Location */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Current Location *
@@ -715,20 +842,25 @@ export default function RegistrationsPage() {
                   <input
                     type="text"
                     name="currentLocation"
-                    value={formData.currentLocation}
-                    onChange={handleInputChange}
+                    value={addFormData.currentLocation}
+                    onChange={handleAddInputChange}
                     className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      formErrors.currentLocation ? 'border-red-500' : 'border-slate-200'
+                      addFormErrors.currentLocation ? 'border-red-500' : 'border-slate-200'
                     }`}
                     placeholder="City, Country"
                   />
                 </div>
-                {formErrors.currentLocation && (
-                  <p className="mt-1 text-xs text-red-600">{formErrors.currentLocation}</p>
+                {addFormErrors.currentLocation && (
+                  <p className="mt-1 text-xs text-red-600">{addFormErrors.currentLocation}</p>
                 )}
               </div>
 
-              {/* Form Actions */}
+              {addFormErrors.general && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{addFormErrors.general}</p>
+                </div>
+              )}
+
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <Button 
                   type="button" 

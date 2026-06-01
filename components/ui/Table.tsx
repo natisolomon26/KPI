@@ -16,16 +16,16 @@ export function Table({ children, className = '' }: TableProps) {
   );
 }
 
-export function TableHeader({ children }: { children: ReactNode }) {
+export function TableHeader({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <thead className="bg-slate-50">
-      <tr>{children}</tr>
+    <thead className={`bg-slate-50 ${className}`}>
+      {children}
     </thead>
   );
 }
 
-export function TableBody({ children }: { children: ReactNode }) {
-  return <tbody className="divide-y divide-slate-200">{children}</tbody>;
+export function TableBody({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <tbody className={`divide-y divide-slate-200 ${className}`}>{children}</tbody>;
 }
 
 export function TableRow({ children, className = '' }: { children: ReactNode; className?: string }) {

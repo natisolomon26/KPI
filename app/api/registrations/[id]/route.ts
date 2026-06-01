@@ -1,7 +1,7 @@
 // app/api/registrations/[id]/route.ts (fixed)
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Registration from '@/models/Registration';
+import Registration from '@/models/Registrations';
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
 
