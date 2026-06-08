@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const university = searchParams.get('university');
+    const department = searchParams.get('department');
 
     // Build query
     let query: any = {};
@@ -34,6 +36,14 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       query.$text = { $search: search };
+    }
+
+    if (university) {
+      query.university = university;
+    }
+
+    if (department) {
+      query.department = department;
     }
 
     // Execute query with pagination
@@ -64,7 +74,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -72,7 +81,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     const requiredFields = [
       'firstName', 'lastName', 'email', 'phoneNumber',
-      'university', 'graduationYear', 'currentLocation'
+      'university', 'campus', 'department', 'graduationYear', 'currentLocation'
     ];
     
     for (const field of requiredFields) {
@@ -104,13 +113,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new registration (no status field)
+    // Create new registration with all fields
     const registration = await Registration.create({
       firstName: body.firstName,
       lastName: body.lastName,
       email: body.email,
       phoneNumber: body.phoneNumber,
       university: body.university,
+      campus: body.campus,
+      department: body.department,
       graduationYear: body.graduationYear,
       currentLocation: body.currentLocation,
     });

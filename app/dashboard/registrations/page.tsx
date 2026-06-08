@@ -1,4 +1,4 @@
-// app/dashboard/registrations/page.tsx (fixed with proper typing)
+// app/dashboard/registrations/page.tsx (updated with campus and department)
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +21,10 @@ import {
   Globe,
   Trash2,
   Edit,
-  CheckCircle
+  CheckCircle,
+  Loader2,
+  School,
+  BookOpen
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -31,6 +34,7 @@ import { useRegistrations } from '@/hooks/useRegistrations';
 import { useRegistrationStore } from '@/store/registration.store';
 import { format } from 'date-fns';
 import { Registration } from '@/lib/types/api';
+import { allInstitutions, getCampusesByUniversity } from '@/data/campus';
 import toast from 'react-hot-toast';
 
 // Generate years for dropdown (last 50 years)
@@ -45,7 +49,9 @@ export default function RegistrationsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Registration>>({});
+  const [availableCampuses, setAvailableCampuses] = useState<Array<{id: string, name: string}>>([]);
   
   // Add manual form state
   const [addFormData, setAddFormData] = useState({
@@ -54,6 +60,8 @@ export default function RegistrationsPage() {
     email: '',
     phoneNumber: '',
     university: '',
+    campus: '',
+    department: '',
     graduationYear: '',
     currentLocation: '',
   });
@@ -61,11 +69,31 @@ export default function RegistrationsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
-  const { useGetRegistrations, deleteRegistration, updateRegistration, submitRegistration } = useRegistrations();
+  const { 
+    useGetRegistrations, 
+    deleteRegistration, 
+    updateRegistration, 
+    submitRegistration,
+    exportRegistrations
+  } = useRegistrations();
+  
   const { registrations, isLoading, totalPages } = useRegistrationStore();
   
   // Fetch registrations
   const { refetch, isFetching } = useGetRegistrations(searchTerm, currentPage);
+
+  // Update campuses when university changes in edit form
+  useEffect(() => {
+    if (editFormData.university) {
+      const selectedUniv = allInstitutions.find(inst => inst.name === editFormData.university);
+      if (selectedUniv && selectedUniv.type === 'university') {
+        const campuses = getCampusesByUniversity(selectedUniv.id);
+        setAvailableCampuses(campuses);
+      } else {
+        setAvailableCampuses([{ id: "main-campus", name: "Main Campus" }]);
+      }
+    }
+  }, [editFormData.university]);
 
   // Calculate stats safely
   const registrationsArray = (registrations as Registration[]) || [];
@@ -95,6 +123,8 @@ export default function RegistrationsPage() {
       email: registration.email,
       phoneNumber: registration.phoneNumber,
       university: registration.university,
+      campus: registration.campus,
+      department: registration.department,
       graduationYear: registration.graduationYear,
       currentLocation: registration.currentLocation,
     });
@@ -136,6 +166,16 @@ export default function RegistrationsPage() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      await exportRegistrations.mutateAsync();
+      toast.success('Export successful! CSV file downloaded.');
+      setIsExportModalOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to export data');
+    }
+  };
+
   const handleOpenAddModal = () => {
     setAddFormData({
       firstName: '',
@@ -143,6 +183,8 @@ export default function RegistrationsPage() {
       email: '',
       phoneNumber: '',
       university: '',
+      campus: '',
+      department: '',
       graduationYear: '',
       currentLocation: '',
     });
@@ -162,7 +204,9 @@ export default function RegistrationsPage() {
       errors.email = 'Email is invalid';
     }
     if (!addFormData.phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
-    if (!addFormData.university.trim()) errors.university = 'University is required';
+    if (!addFormData.university) errors.university = 'University is required';
+    if (!addFormData.campus) errors.campus = 'Campus is required';
+    if (!addFormData.department.trim()) errors.department = 'Department is required';
     if (!addFormData.graduationYear) errors.graduationYear = 'Graduation year is required';
     if (!addFormData.currentLocation.trim()) errors.currentLocation = 'Current location is required';
     
@@ -199,12 +243,8 @@ export default function RegistrationsPage() {
       }
     } catch (error: any) {
       console.error('Error adding registration:', error);
-      toast.error(error.response?.data?.error || 'Failed to add registration');
-      if (error.response?.data?.error) {
-        setAddFormErrors({ general: error.response.data.error });
-      } else {
-        setAddFormErrors({ general: 'Failed to add registration. Please try again.' });
-      }
+      toast.error(error.message || 'Failed to add registration');
+      setAddFormErrors({ general: error.message || 'Failed to add registration. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -234,8 +274,17 @@ export default function RegistrationsPage() {
           <p className="text-slate-600 mt-1">View and manage alumni registration records</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => setIsExportModalOpen(true)}
+            disabled={exportRegistrations.isPending || registrationsArray.length === 0}
+          >
+            {exportRegistrations.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
             Export
           </Button>
           <Button variant="primary" className="gap-2" onClick={handleOpenAddModal}>
@@ -328,6 +377,7 @@ export default function RegistrationsPage() {
               <TableHead className="text-left">Applicant</TableHead>
               <TableHead className="text-left">Contact</TableHead>
               <TableHead className="text-left">Education</TableHead>
+              <TableHead className="text-left">Campus & Dept</TableHead>
               <TableHead className="text-left">Location</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -335,18 +385,18 @@ export default function RegistrationsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <td colSpan={5} className="px-6 py-12 text-center">
+                <td colSpan={6} className="px-6 py-12 text-center">
                   <div className="flex items-center justify-center">
                     <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
                     <span className="ml-3 text-slate-600">Loading registrations...</span>
                   </div>
-                </td>
+                 </td>
               </TableRow>
             ) : registrationsArray.length === 0 ? (
               <TableRow>
-                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                   No registrations found
-                </td>
+                 </td>
               </TableRow>
             ) : (
               <AnimatePresence mode="wait">
@@ -390,11 +440,23 @@ export default function RegistrationsPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                           <GraduationCap className="w-3 h-3 flex-shrink-0" />
-                          <span>{reg.university}</span>
+                          <span className="font-medium">{reg.university}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                           <Calendar className="w-3 h-3 flex-shrink-0" />
                           <span>Class of {reg.graduationYear}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-left">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <School className="w-3 h-3 flex-shrink-0" />
+                          <span>{reg.campus || 'Not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <BookOpen className="w-3 h-3 flex-shrink-0" />
+                          <span>{reg.department || 'Not specified'}</span>
                         </div>
                       </div>
                     </TableCell>
@@ -492,8 +554,47 @@ export default function RegistrationsPage() {
         )}
       </Card>
 
-      {/* Rest of your modals remain the same */}
-      {/* View Details Modal - update to use Registration type */}
+      {/* Export Confirmation Modal */}
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Export Data"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Download className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Export Alumni Data</h3>
+            <p className="text-slate-600">
+              You are about to export {registrationsArray.length} alumni records to CSV format.
+            </p>
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-xs text-yellow-800">
+              ⚠️ The CSV file will contain all registration data including personal information.
+              Please handle this data responsibly.
+            </p>
+          </div>
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={handleExport}
+              isLoading={exportRegistrations.isPending}
+            >
+              {exportRegistrations.isPending ? 'Exporting...' : 'Confirm Export'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* View Details Modal */}
       <Modal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
@@ -539,8 +640,22 @@ export default function RegistrationsPage() {
                     {selectedRegistration.university}
                   </p>
                 </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Campus</label>
+                  <p className="mt-1 text-slate-900 flex items-center gap-2">
+                    <School className="w-4 h-4 text-slate-400" />
+                    {selectedRegistration.campus || 'Not specified'}
+                  </p>
+                </div>
               </div>
               <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Department</label>
+                  <p className="mt-1 text-slate-900 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-slate-400" />
+                    {selectedRegistration.department || 'Not specified'}
+                  </p>
+                </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Graduation Year</label>
                   <p className="mt-1 text-slate-900 flex items-center gap-2">
@@ -583,7 +698,7 @@ export default function RegistrationsPage() {
         <form onSubmit={handleUpdate} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">First Name</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">First Name *</label>
               <input
                 type="text"
                 value={editFormData.firstName || ''}
@@ -593,7 +708,7 @@ export default function RegistrationsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Last Name</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Last Name *</label>
               <input
                 type="text"
                 value={editFormData.lastName || ''}
@@ -604,59 +719,102 @@ export default function RegistrationsPage() {
             </div>
           </div>
           
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={editFormData.email || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
-            <input
-              type="tel"
-              value={editFormData.phoneNumber || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
+              <input
+                type="email"
+                value={editFormData.email || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number *</label>
+              <input
+                type="tel"
+                value={editFormData.phoneNumber || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+              />
+            </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">University</label>
-              <input
-                type="text"
+              <label className="block text-xs font-bold text-slate-700 mb-1">University *</label>
+              <select
                 value={editFormData.university || ''}
                 onChange={(e) => setEditFormData({ ...editFormData, university: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 required
+              >
+                <option value="">Select university</option>
+                {allInstitutions.map((inst) => (
+                  <option key={inst.id} value={inst.name}>
+                    {inst.name} {inst.type === 'private-college' ? '(Private)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Campus *</label>
+              <select
+                value={editFormData.campus || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, campus: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+                disabled={!editFormData.university}
+              >
+                <option value="">Select campus</option>
+                {availableCampuses.map((campus) => (
+                  <option key={campus.id} value={campus.name}>
+                    {campus.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
+              <input
+                type="text"
+                value={editFormData.department || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                required
+                placeholder="e.g., Computer Science"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Graduation Year</label>
-              <input
-                type="text"
+              <label className="block text-xs font-bold text-slate-700 mb-1">Graduation Year *</label>
+              <select
                 value={editFormData.graduationYear || ''}
                 onChange={(e) => setEditFormData({ ...editFormData, graduationYear: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 required
-              />
+              >
+                <option value="">Select year</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
             </div>
           </div>
           
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Current Location</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Current Location *</label>
             <input
               type="text"
               value={editFormData.currentLocation || ''}
               onChange={(e) => setEditFormData({ ...editFormData, currentLocation: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
               required
+              placeholder="City, Country"
             />
           </div>
           
@@ -804,21 +962,62 @@ export default function RegistrationsPage() {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     University *
                   </label>
-                  <div className="relative">
-                    <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      name="university"
-                      value={addFormData.university}
-                      onChange={handleAddInputChange}
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.university ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="e.g., Addis Ababa University"
-                    />
-                  </div>
+                  <select
+                    name="university"
+                    value={addFormData.university}
+                    onChange={handleAddInputChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      addFormErrors.university ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                  >
+                    <option value="">Select university/college</option>
+                    {allInstitutions.map((inst) => (
+                      <option key={inst.id} value={inst.name}>
+                        {inst.name} {inst.type === 'private-college' ? '(Private College)' : '(University)'}
+                      </option>
+                    ))}
+                  </select>
                   {addFormErrors.university && (
                     <p className="mt-1 text-xs text-red-600">{addFormErrors.university}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Campus *
+                  </label>
+                  <input
+                    type="text"
+                    name="campus"
+                    value={addFormData.campus}
+                    onChange={handleAddInputChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      addFormErrors.campus ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                    placeholder="e.g., Main Campus, 6 Kilo Campus"
+                  />
+                  {addFormErrors.campus && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.campus}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Department *
+                  </label>
+                  <input
+                    type="text"
+                    name="department"
+                    value={addFormData.department}
+                    onChange={handleAddInputChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                      addFormErrors.department ? 'border-red-500' : 'border-slate-200'
+                    }`}
+                    placeholder="e.g., Computer Science, Business"
+                  />
+                  {addFormErrors.department && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.department}</p>
                   )}
                 </div>
                 <div>

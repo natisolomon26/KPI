@@ -1,4 +1,4 @@
-// services/registration.service.ts (alternative - if response.data contains the array directly)
+// services/registration.service.ts
 import { apiClient } from '@/lib/api/client';
 import { RegistrationRequest, Registration } from '@/lib/types/api';
 
@@ -17,7 +17,6 @@ export const registrationService = {
     const url = `/registrations${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await apiClient.get<any>(url);
     
-    // Return the response directly since it already has the correct structure
     return {
       success: response.success,
       data: response.data || [],
@@ -37,6 +36,24 @@ export const registrationService = {
   
   deleteRegistration: async (id: string) => {
     const response = await apiClient.delete(`/registrations/${id}`);
+    return response;
+  },
+
+  // Export registrations to CSV
+  exportToCSV: async () => {
+    const response = await fetch('/api/registrations/export');
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to export registrations');
+    }
+    
+    return response.blob();
+  },
+
+  // Delete all registrations
+  deleteAllRegistrations: async (confirm: string) => {
+    const response = await apiClient.delete(`/registrations/delete-all?confirm=${confirm}`);
     return response;
   },
 };

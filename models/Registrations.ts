@@ -1,4 +1,4 @@
-// models/Registration.ts (without status field)
+// models/Registration.ts
 import mongoose from 'mongoose';
 
 export interface IRegistration {
@@ -7,6 +7,8 @@ export interface IRegistration {
   email: string;
   phoneNumber: string;
   university: string;
+  campus: string; // New field
+  department: string; // New field
   graduationYear: string;
   currentLocation: string;
   registeredAt: Date;
@@ -43,12 +45,22 @@ const RegistrationSchema = new mongoose.Schema<IRegistration>(
     phoneNumber: {
       type: String,
       required: [true, 'Phone number is required'],
-      unique: true, // Add this to prevent duplicate phone numbers
+      unique: true,
       trim: true,
     },
     university: {
       type: String,
       required: [true, 'University is required'],
+      trim: true,
+    },
+    campus: {
+      type: String,
+      required: [true, 'Campus is required'],
+      trim: true,
+    },
+    department: {
+      type: String,
+      required: [true, 'Department is required'],
       trim: true,
     },
     graduationYear: {
@@ -73,8 +85,11 @@ const RegistrationSchema = new mongoose.Schema<IRegistration>(
 // Create indexes for better query performance
 RegistrationSchema.index({ email: 1 });
 RegistrationSchema.index({ phoneNumber: 1 });
-RegistrationSchema.index({ createdAt: -1 });
-RegistrationSchema.index({ firstName: 'text', lastName: 'text', email: 'text', phoneNumber: 'text' });
+RegistrationSchema.index({ university: 1 });
+RegistrationSchema.index({ campus: 1 });
+RegistrationSchema.index({ department: 1 });
+RegistrationSchema.index({ registeredAt: -1 });
+RegistrationSchema.index({ firstName: 'text', lastName: 'text', email: 'text', phoneNumber: 'text', university: 'text', department: 'text' });
 
 // Prevent model recompilation in development
 const Registration = mongoose.models.Registration || mongoose.model<IRegistration>('Registration', RegistrationSchema);

@@ -41,26 +41,45 @@ export interface User {
 }
 
 // types/registration.ts
+
+
+// lib/types/api.ts
 export interface RegistrationRequest {
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
   university: string;
+  campus: string;
+  department: string;
   graduationYear: string;
   currentLocation: string;
 }
 
-// types/api.ts - update the Registration type
 export interface Registration {
-  _id: string;  // Add this field
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
   university: string;
+  campus: string;
+  department: string;
   graduationYear: string;
   currentLocation: string;
   registeredAt: string;
   updatedAt: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }

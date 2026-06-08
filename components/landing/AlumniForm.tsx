@@ -1,4 +1,4 @@
-// components/AlumniForm.tsx (with phone number uniqueness validation)
+// components/AlumniForm.tsx (updated with dropdowns)
 'use client';
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -14,9 +14,14 @@ import {
   Phone,
   MapPin,
   Building,
-  Loader2
+  Loader2,
+  School,
+  BookOpen,
+  ChevronDown
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
+import { useRegistrations } from "@/hooks/useRegistrations";
+import { allInstitutions, getCampusesByUniversity, University } from "@/data/campus";
 import Image from "next/image";
 
 // Generate deterministic particle positions without Math.random during render
@@ -43,6 +48,7 @@ export default function AlumniForm() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
   const { showSuccess, showError, showLoading, dismiss } = useToast();
+  const { submitRegistration } = useRegistrations();
 
   // Parallax effects matching hero
   const { scrollY } = useScroll();
@@ -58,12 +64,37 @@ export default function AlumniForm() {
     email: "",
     phoneNumber: "",
     university: "",
+    campus: "",
+    department: "",
     graduationYear: "",
     currentLocation: ""
   });
 
+  const [availableCampuses, setAvailableCampuses] = useState<Array<{id: string, name: string}>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Update campuses when university changes
+  useEffect(() => {
+    if (formData.university) {
+      const selectedUniv = allInstitutions.find(inst => inst.name === formData.university);
+      if (selectedUniv && selectedUniv.type === 'university') {
+        const campuses = getCampusesByUniversity(selectedUniv.id);
+        setAvailableCampuses(campuses);
+        // Reset campus selection if current selection not in new list
+        if (!campuses.find(c => c.name === formData.campus)) {
+          setFormData(prev => ({ ...prev, campus: "" }));
+        }
+      } else {
+        // For private colleges or if no campuses found
+        setAvailableCampuses([{ id: "main-campus", name: "Main Campus" }]);
+        setFormData(prev => ({ ...prev, campus: "Main Campus" }));
+      }
+    } else {
+      setAvailableCampuses([]);
+      setFormData(prev => ({ ...prev, campus: "" }));
+    }
+  }, [formData.university]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,15 +123,6 @@ export default function AlumniForm() {
       opacity: 1, 
       x: 0,
       transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
-    }
-  };
-
-  const fadeUp: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.6 }
     }
   };
 
@@ -149,7 +171,9 @@ export default function AlumniForm() {
     } else if (!validatePhoneNumber(formData.phoneNumber)) {
       errors.phoneNumber = "Please enter a valid phone number";
     }
-    if (!formData.university.trim()) errors.university = "University is required";
+    if (!formData.university) errors.university = "Please select a university/college";
+    if (!formData.campus) errors.campus = "Please select a campus";
+    if (!formData.department.trim()) errors.department = "Department is required";
     if (!formData.graduationYear) errors.graduationYear = "Graduation year is required";
     if (!formData.currentLocation.trim()) errors.currentLocation = "Current location is required";
     
@@ -168,15 +192,9 @@ export default function AlumniForm() {
     const loadingToast = showLoading("Submitting your registration...");
 
     try {
-      const response = await fetch('/api/registrations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      const result = await submitRegistration.mutateAsync(formData);
+      
+      if (result.success) {
         dismiss(loadingToast);
         showSuccess("Successfully joined the alumni network!");
         setFormData({
@@ -185,26 +203,24 @@ export default function AlumniForm() {
           email: "",
           phoneNumber: "",
           university: "",
+          campus: "",
+          department: "",
           graduationYear: "",
           currentLocation: ""
         });
         setFieldErrors({});
-      } else {
-        dismiss(loadingToast);
-        if (data.error === "Email already registered") {
-          setFieldErrors(prev => ({ ...prev, email: "This email is already registered" }));
-          showError("This email address is already registered.");
-        } else if (data.error === "Phone number already registered" || data.error?.includes("phone")) {
-          setFieldErrors(prev => ({ ...prev, phoneNumber: "This phone number is already registered" }));
-          showError("This phone number is already registered.");
-        } else {
-          showError(data.error || "Failed to submit registration.");
-        }
       }
-    } catch (error) {
-      console.error('Error submitting form:', error);
+    } catch (error: any) {
       dismiss(loadingToast);
-      showError("Network error. Please try again.");
+      if (error.message?.includes("Email")) {
+        setFieldErrors(prev => ({ ...prev, email: error.message }));
+        showError("This email address is already registered.");
+      } else if (error.message?.includes("Phone")) {
+        setFieldErrors(prev => ({ ...prev, phoneNumber: error.message }));
+        showError("This phone number is already registered.");
+      } else {
+        showError(error.message || "Failed to submit registration.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -405,64 +421,136 @@ export default function AlumniForm() {
                 </motion.div>
               </div>
 
-              {/* University Graduated From */}
+              {/* University Dropdown */}
               <motion.div variants={fadeLeft}>
                 <label htmlFor="university" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
-                  University Graduated From *
+                  University/College *
                 </label>
                 <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                  <select
                     id="university"
                     name="university"
                     value={formData.university}
                     onChange={handleChange}
                     required
                     disabled={isSubmitting}
-                    className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                    className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
                       fieldErrors.university 
                         ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
                         : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
                     }`}
-                    placeholder="e.g., Addis Ababa University"
-                  />
+                  >
+                    <option value="" className="bg-slate-800">Select your university or college</option>
+                    {allInstitutions.map((inst) => (
+                      <option key={inst.id} value={inst.name} className="bg-slate-800">
+                        {inst.name} {inst.type === 'private-college' ? '(Private College)' : '(University)'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
                 {fieldErrors.university && (
                   <p className="mt-1 text-xs text-red-400">{fieldErrors.university}</p>
                 )}
               </motion.div>
 
-              {/* Graduation Year */}
+              {/* Campus Dropdown */}
               <motion.div variants={fadeLeft}>
-                <label htmlFor="graduationYear" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
-                  Graduation Year *
+                <label htmlFor="campus" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                  Campus *
                 </label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
                   <select
-                    id="graduationYear"
-                    name="graduationYear"
-                    value={formData.graduationYear}
+                    id="campus"
+                    name="campus"
+                    value={formData.campus}
                     onChange={handleChange}
                     required
-                    disabled={isSubmitting}
-                    className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
-                      fieldErrors.graduationYear 
+                    disabled={isSubmitting || !formData.university}
+                    className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
+                      fieldErrors.campus 
                         ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
                         : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
                     }`}
                   >
-                    <option value="" className="bg-slate-800">Select graduation year</option>
-                    {years.map((year) => (
-                      <option key={year} value={year} className="bg-slate-800">{year}</option>
+                    <option value="" className="bg-slate-800">
+                      {!formData.university ? 'Please select a university first' : 'Select your campus'}
+                    </option>
+                    {availableCampuses.map((campus) => (
+                      <option key={campus.id} value={campus.name} className="bg-slate-800">
+                        {campus.name}
+                      </option>
                     ))}
                   </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
-                {fieldErrors.graduationYear && (
-                  <p className="mt-1 text-xs text-red-400">{fieldErrors.graduationYear}</p>
+                {fieldErrors.campus && (
+                  <p className="mt-1 text-xs text-red-400">{fieldErrors.campus}</p>
                 )}
               </motion.div>
+
+              {/* Department & Graduation Year Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div variants={fadeLeft}>
+                  <label htmlFor="department" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Department/Field of Study *
+                  </label>
+                  <div className="relative">
+                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.department 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                      placeholder="e.g., Computer Science, Business"
+                    />
+                  </div>
+                  {fieldErrors.department && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.department}</p>
+                  )}
+                </motion.div>
+
+                <motion.div variants={fadeLeft}>
+                  <label htmlFor="graduationYear" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Graduation Year *
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <select
+                      id="graduationYear"
+                      name="graduationYear"
+                      value={formData.graduationYear}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.graduationYear 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                    >
+                      <option value="" className="bg-slate-800">Select graduation year</option>
+                      {years.map((year) => (
+                        <option key={year} value={year} className="bg-slate-800">{year}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  {fieldErrors.graduationYear && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.graduationYear}</p>
+                  )}
+                </motion.div>
+              </div>
 
               {/* Current Location */}
               <motion.div variants={fadeLeft}>
