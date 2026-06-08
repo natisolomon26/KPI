@@ -9,13 +9,8 @@ import WorkWithUs from "@/components/landing/WorkWithUs";
 export default function Home() {
   return (
     <>
-      <Header />
-      <Hero />
-      <About />
-      <Resources /> 
-      <WorkWithUs />
+      
       <AlumniForm />
-      <Footer />
     </>
   );
 }
