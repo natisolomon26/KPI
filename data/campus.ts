@@ -9,6 +9,7 @@ export interface University {
   id: string;
   name: string;
   type: 'university' | 'private-college';
+  category: 'government' | 'private'; // New field to distinguish government vs private
   campuses?: Campus[]; // Only universities have campuses
   subRegion?: string; // For private colleges in Addis Ababa
 }
@@ -16,25 +17,28 @@ export interface University {
 // Generate unique IDs
 const generateId = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-// All Universities (A-Z)
-export const universities: University[] = [
+// All Government Universities (A-Z)
+export const governmentUniversities: University[] = [
   // A
   {
     id: generateId("Adama Science and Technology University"),
     name: "Adama Science and Technology University (ASTU)",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus ASTU"), name: "Main Campus" }]
   },
   {
     id: generateId("Addis Ababa Science and Technology University"),
     name: "Addis Ababa Science and Technology University (AASTU)",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus AASTU"), name: "Main Campus" }]
   },
   {
     id: generateId("Addis Ababa University"),
     name: "Addis Ababa University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("4 Kilo Campus"), name: "4 Kilo Campus" },
       { id: generateId("5 Kilo Campus"), name: "5 Kilo Campus" },
@@ -53,12 +57,14 @@ export const universities: University[] = [
     id: generateId("Adigrat University"),
     name: "Adigrat University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Adigrat"), name: "Main Campus" }]
   },
   {
     id: generateId("Ambo University"),
     name: "Ambo University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Ambo"), name: "Main Campus" },
       { id: generateId("Wolisso Campus"), name: "Wolisso Campus" },
@@ -70,6 +76,7 @@ export const universities: University[] = [
     id: generateId("Arba Minch University"),
     name: "Arba Minch University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Arba Minch"), name: "Main Campus" },
       { id: generateId("Chamo Campus"), name: "Chamo Campus" },
@@ -83,6 +90,7 @@ export const universities: University[] = [
     id: generateId("Arsi University"),
     name: "Arsi University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Ardu Campus"), name: "Ardu Campus" },
       { id: generateId("Dinsho Campus"), name: "Dinsho Campus" },
@@ -94,12 +102,14 @@ export const universities: University[] = [
     id: generateId("Assosa University"),
     name: "Assosa University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Assosa"), name: "Main Campus" }]
   },
   {
     id: generateId("Axum University"),
     name: "Axum University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Axum"), name: "Main Campus" },
       { id: generateId("Health Campus Axum"), name: "Health Campus" },
@@ -111,6 +121,7 @@ export const universities: University[] = [
     id: generateId("Aysaita Teachers Education College"),
     name: "Aysaita Teachers Education College",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Aysaita"), name: "Main Campus" }]
   },
 
@@ -119,6 +130,7 @@ export const universities: University[] = [
     id: generateId("Bahir Dar University"),
     name: "Bahir Dar University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Polly Campus"), name: "Polly Campus" },
       { id: generateId("Peda Campus"), name: "Peda Campus" },
@@ -132,24 +144,28 @@ export const universities: University[] = [
     id: generateId("Bonga University"),
     name: "Bonga University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Bonga"), name: "Main Campus" }]
   },
   {
     id: generateId("Bonga TTC"),
     name: "Bonga TTC",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Bonga TTC"), name: "Main Campus" }]
   },
   {
     id: generateId("Borena University"),
     name: "Borena University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Yabelo Campus"), name: "Yabelo Campus" }]
   },
   {
     id: generateId("Bulhora University"),
     name: "Bulhora University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Bulhora"), name: "Main Campus" },
       { id: generateId("Adola Campus"), name: "Adola Campus" }
@@ -161,24 +177,28 @@ export const universities: University[] = [
     id: generateId("Dambidollo University"),
     name: "Dambidollo University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Dambidollo"), name: "Main Campus" }]
   },
   {
     id: generateId("Debark University"),
     name: "Debark University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Debark"), name: "Main Campus" }]
   },
   {
     id: generateId("Debre Birhan University"),
     name: "Debre Birhan University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Debre Birhan"), name: "Main Campus" }]
   },
   {
     id: generateId("Debre Markos University"),
     name: "Debre Markos University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Debre Markos"), name: "Main Campus" },
       { id: generateId("Burea Campus"), name: "Burea Campus" }
@@ -188,12 +208,14 @@ export const universities: University[] = [
     id: generateId("Debre Tabor University"),
     name: "Debre Tabor University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Debre Tabor"), name: "Main Campus" }]
   },
   {
     id: generateId("Dilla University"),
     name: "Dilla University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Dilla"), name: "Main Campus" },
       { id: generateId("Referral Campus Dilla"), name: "Referral Campus" }
@@ -203,6 +225,7 @@ export const universities: University[] = [
     id: generateId("Diredawa University"),
     name: "Diredawa University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Diredawa"), name: "Main Campus" }]
   },
 
@@ -211,6 +234,7 @@ export const universities: University[] = [
     id: generateId("Ethiopian Defense University"),
     name: "Ethiopian Defense University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Engineering College Defense"), name: "Engineering College" },
       { id: generateId("Health Science College Defense"), name: "Health Science College" }
@@ -220,6 +244,7 @@ export const universities: University[] = [
     id: generateId("Ethiopian Public Service University"),
     name: "Ethiopian Public Service University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus EPSU"), name: "Main Campus" }]
   },
 
@@ -228,6 +253,7 @@ export const universities: University[] = [
     id: generateId("Federal Technical and Vocational Training Institute"),
     name: "Federal Technical and Vocational Training Institute",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus FTVTI"), name: "Main Campus" }]
   },
 
@@ -236,12 +262,14 @@ export const universities: University[] = [
     id: generateId("Gambela University"),
     name: "Gambela University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Gambela"), name: "Main Campus" }]
   },
   {
     id: generateId("Gondar University"),
     name: "Gondar University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Gondar"), name: "Main Campus" },
       { id: generateId("Medical Campus Gondar"), name: "Medical Campus" }
@@ -253,6 +281,7 @@ export const universities: University[] = [
     id: generateId("Haremaya University"),
     name: "Haremaya University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Bate"), name: "Main Campus (Bate)" },
       { id: generateId("Health Campus Harer"), name: "Health Campus (Harer)" }
@@ -262,6 +291,7 @@ export const universities: University[] = [
     id: generateId("Hawassa University"),
     name: "Hawassa University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Hawassa"), name: "Main Campus" },
       { id: generateId("ACA Campus"), name: "ACA Campus" },
@@ -277,6 +307,7 @@ export const universities: University[] = [
     id: generateId("Injubara University"),
     name: "Injubara University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Injubara"), name: "Main Campus" }]
   },
 
@@ -285,12 +316,14 @@ export const universities: University[] = [
     id: generateId("Jijga University"),
     name: "Jijga University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Jijga"), name: "Main Campus" }]
   },
   {
     id: generateId("Jimma University"),
     name: "Jimma University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main and Beco Campus"), name: "Main and Beco Campus (JUMBCF)" },
       { id: generateId("Institute of Technology Campus"), name: "Institute of Technology Campus (JIT/kito fellowship)" },
@@ -302,12 +335,14 @@ export const universities: University[] = [
     id: generateId("Jimma Rift Valley and Dandiboru"),
     name: "Jimma Rift Valley and Dandiboru",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Jimma RV"), name: "Main Campus" }]
   },
   {
     id: generateId("Jinka University"),
     name: "Jinka University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Jinka"), name: "Main Campus" }]
   },
 
@@ -316,12 +351,14 @@ export const universities: University[] = [
     id: generateId("Kebridehar University"),
     name: "Kebridehar University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Kebridehar"), name: "Main Campus" }]
   },
   {
     id: generateId("Kotebe University of Education"),
     name: "Kotebe University of Education",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Kotebe"), name: "Main Campus" }]
   },
 
@@ -330,6 +367,7 @@ export const universities: University[] = [
     id: generateId("Medewelabu University"),
     name: "Medewelabu University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Medewelabu"), name: "Main Campus" },
       { id: generateId("Health Campus Medewelabu"), name: "Health Campus" },
@@ -340,6 +378,7 @@ export const universities: University[] = [
     id: generateId("Mekdela Amba University"),
     name: "Mekdela Amba University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Gimba Campus"), name: "Gimba Campus" },
       { id: generateId("Mekane Selam Campus"), name: "Mekane Selam Campus" }
@@ -349,6 +388,7 @@ export const universities: University[] = [
     id: generateId("Mekelle University"),
     name: "Mekelle University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Adhaqi Campus"), name: "Adhaqi Campus" },
       { id: generateId("Arid Campus"), name: "Arid Campus" },
@@ -361,12 +401,14 @@ export const universities: University[] = [
     id: generateId("Meti Ethio Grand and Duruman"),
     name: "Meti Ethio Grand and Duruman",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Meti"), name: "Main Campus" }]
   },
   {
     id: generateId("Mettu University"),
     name: "Mettu University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Mettu"), name: "Main Campus" },
       { id: generateId("Bedele Campus"), name: "Bedele Campus" }
@@ -376,18 +418,21 @@ export const universities: University[] = [
     id: generateId("Mizan Agri"),
     name: "Mizan Agri",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Mizan Agri"), name: "Main Campus" }]
   },
   {
     id: generateId("Mizan Aman Health Science College"),
     name: "Mizan Aman Health Science College",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Mizan Health"), name: "Main Campus" }]
   },
   {
     id: generateId("Mizan Tep University"),
     name: "Mizan -Tep University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Tepi Campus"), name: "Tepi Campus" },
       { id: generateId("Main Campus Mizan"), name: "Main Campus" },
@@ -400,6 +445,7 @@ export const universities: University[] = [
     id: generateId("Nekemit University"),
     name: "Nekemit University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Nekemit"), name: "Main Campus" },
       { id: generateId("Shambu Campus"), name: "Shambu Campus" },
@@ -412,6 +458,7 @@ export const universities: University[] = [
     id: generateId("Odabultu University"),
     name: "Odabultu University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Odabultu"), name: "Main Campus" }]
   },
 
@@ -420,6 +467,7 @@ export const universities: University[] = [
     id: generateId("Post Graduate Fellowship"),
     name: "Post Graduate Fellowship",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Hawassa Main Campus Fellowship"), name: "Hawassa Main Campus" },
       { id: generateId("Hawassa ACA Campus Fellowship"), name: "Hawassa ACA Campus" },
@@ -432,6 +480,7 @@ export const universities: University[] = [
     id: generateId("Raya University"),
     name: "Raya University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Raya"), name: "Main Campus" }]
   },
 
@@ -440,6 +489,7 @@ export const universities: University[] = [
     id: generateId("Selale University"),
     name: "Selale University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Selale"), name: "Main Campus" },
       { id: generateId("Health Campus Selale"), name: "Health Campus" }
@@ -449,6 +499,7 @@ export const universities: University[] = [
     id: generateId("Semera University"),
     name: "Semera University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Semera"), name: "Main Campus" }]
   },
 
@@ -457,6 +508,7 @@ export const universities: University[] = [
     id: generateId("Unity Campus Northeast"),
     name: "Unity Campus",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Unity"), name: "Main Campus" }]
   },
 
@@ -465,6 +517,7 @@ export const universities: University[] = [
     id: generateId("Wachemo University"),
     name: "Wachemo University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Wachemo"), name: "Main Campus" },
       { id: generateId("Durame Campus"), name: "Durame Campus" },
@@ -475,6 +528,7 @@ export const universities: University[] = [
     id: generateId("Welkite University"),
     name: "Welkite University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Welkite"), name: "Main Campus" },
       { id: generateId("Cluster Campus Welkite"), name: "Cluster Campus" }
@@ -484,12 +538,14 @@ export const universities: University[] = [
     id: generateId("Werabe University"),
     name: "Werabe University",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Werabe"), name: "Main Campus" }]
   },
   {
     id: generateId("Wolayta Sodo University"),
     name: "Wolayta Sodo University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Wolayta"), name: "Main Campus" },
       { id: generateId("Otona Campus"), name: "Otona Campus" },
@@ -501,6 +557,7 @@ export const universities: University[] = [
     id: generateId("Woldia University"),
     name: "Woldia University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Main Campus Woldia"), name: "Main Campus" },
       { id: generateId("Mersa Campus"), name: "Mersa Campus" },
@@ -511,6 +568,7 @@ export const universities: University[] = [
     id: generateId("Wollo University"),
     name: "Wollo University",
     type: 'university',
+    category: 'government',
     campuses: [
       { id: generateId("Dessie Main Campus"), name: "Dessie Main Campus" },
       { id: generateId("Kombolcha Institute of Technology"), name: "Kombolcha Institute of Technology (KIoT)" },
@@ -523,6 +581,7 @@ export const universities: University[] = [
     id: generateId("Yrgalem Hospital Medical College"),
     name: "Yrgalem Hospital Medical College",
     type: 'university',
+    category: 'government',
     campuses: [{ id: generateId("Main Campus Yrgalem"), name: "Main Campus" }]
   }
 ];
@@ -534,85 +593,100 @@ export const privateColleges: University[] = [
     id: generateId("ACT College"),
     name: "ACT College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Piassa Sub Region"
   },
   {
     id: generateId("Adama General Hospital Medical College"),
     name: "Adama General Hospital Medical College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Adama"
   },
   {
     id: generateId("Admas College"),
     name: "Admas College",
     type: 'private-college',
+    category: 'private',
     subRegion: "22 Sub Region"
   },
   {
     id: generateId("Admas Michael College"),
     name: "Admas Michael College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("Admas University Bishoftu Campus"),
     name: "Admas University Bishoftu Campus",
     type: 'private-college',
+    category: 'private',
     subRegion: "Bishoftu"
   },
   {
     id: generateId("African Medical College"),
     name: "African Medical College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("Agarpha Gbrhna College"),
     name: "Agarpha Gbrhna College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Alkan"),
     name: "Alkan",
     type: 'private-college',
+    category: 'private',
     subRegion: "Pawlos Sub Region"
   },
   {
     id: generateId("Arba Minch Fellowship of Colleges"),
     name: "Arba Minch Fellowship of Colleges",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Arba Minch Health College"),
     name: "Arba Minch Health College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Ardayta Gbrhna College"),
     name: "Ardayta Gbrhna College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Arsingelie Medical"),
     name: "Arsingelie Medical",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Atlas Mexico"),
     name: "Atlas",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("Atlas Medical College"),
     name: "Atlas Medical College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Bole Sub Region"
   },
   {
     id: generateId("Ayer Tena Principal"),
     name: "Ayer Tena Principal",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
 
@@ -621,6 +695,7 @@ export const privateColleges: University[] = [
     id: generateId("BST"),
     name: "BST",
     type: 'private-college',
+    category: 'private',
     subRegion: "Pawlos Sub Region"
   },
 
@@ -629,6 +704,7 @@ export const privateColleges: University[] = [
     id: generateId("CPU College"),
     name: "CPU College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Piassa Sub Region"
   },
 
@@ -636,17 +712,20 @@ export const privateColleges: University[] = [
   {
     id: generateId("Dilla Education College"),
     name: "Dilla Education College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Dilla Infolink"),
     name: "Dilla Infolink",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Diredawa Polytechnic College"),
     name: "Diredawa Polytechnic College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
 
   // E
@@ -654,6 +733,7 @@ export const privateColleges: University[] = [
     id: generateId("Ethiopia Aviation Academy"),
     name: "Ethiopia Aviation Academy",
     type: 'private-college',
+    category: 'private',
     subRegion: "Bole Sub Region"
   },
 
@@ -662,12 +742,14 @@ export const privateColleges: University[] = [
     id: generateId("General Winget Polytechnic College"),
     name: "General Winget Polytechnic College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Pawlos Sub Region"
   },
   {
     id: generateId("Goba Enate Medical"),
     name: "Goba Enate Medical",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
 
   // H
@@ -675,120 +757,143 @@ export const privateColleges: University[] = [
     id: generateId("Harambe University Adama"),
     name: "Harambe University Adama",
     type: 'private-college',
+    category: 'private',
     subRegion: "Adama"
   },
   {
     id: generateId("Harer Health Science College"),
     name: "Harer Health Science College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Afericabeza"),
     name: "Hawassa Afericabeza",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Atelas"),
     name: "Hawassa Atelas",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa CEP"),
     name: "Hawassa CEP",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Fura"),
     name: "Hawassa Fura",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Health College"),
     name: "Hawassa Health",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Infolink"),
     name: "Hawassa Infolink",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Pharma"),
     name: "Hawassa Pharma",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Rift Valley"),
     name: "Hawassa RiftVaile",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa TTC"),
     name: "Hawassa TTC",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Tula TVT"),
     name: "Hawassa Tula TVT",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa TVT 1"),
     name: "Hawassa TVT-1",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa TVT 2"),
     name: "Hawassa TVT-2",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Yanite"),
     name: "Hawassa Yanite",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hawassa Zion"),
     name: "Hawassa Zion",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hayat Medical"),
     name: "Hayat Medical",
     type: 'private-college',
+    category: 'private',
     subRegion: "Bole Sub Region"
   },
   {
     id: generateId("Hilco College"),
     name: "Hilco College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Piassa Sub Region"
   },
   {
     id: generateId("Hope University"),
     name: "Hope University",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("Hosana Health College"),
     name: "Hosana Health College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hosana Polytechnic College"),
     name: "Hosana Polytechnic College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hosana Rift Valley"),
     name: "Hosana Rift Valley",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Hosana Teaching College TTC"),
     name: "Hosana Teaching College (TTC)",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
 
   // K
@@ -796,6 +901,7 @@ export const privateColleges: University[] = [
     id: generateId("Kibur College"),
     name: "Kibur College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
 
@@ -804,6 +910,7 @@ export const privateColleges: University[] = [
     id: generateId("Lorkan College"),
     name: "Lorkan College",
     type: 'private-college',
+    category: 'private',
     subRegion: "22 Sub Region"
   },
 
@@ -812,23 +919,27 @@ export const privateColleges: University[] = [
     id: generateId("Mehanayim College"),
     name: "Mehanayim College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Asela"
   },
   {
     id: generateId("Mekane Eyesus Seminary"),
     name: "Mekane Eyesus Seminary",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("Menchen for Menchen"),
     name: "Menchen for Menchen",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Microlink College Piassa"),
     name: "Microlink College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Piassa Sub Region"
   },
 
@@ -837,6 +948,7 @@ export const privateColleges: University[] = [
     id: generateId("New Generation College"),
     name: "New Generation College",
     type: 'private-college',
+    category: 'private',
     subRegion: "22 Sub Region"
   },
 
@@ -845,6 +957,7 @@ export const privateColleges: University[] = [
     id: generateId("Queens College"),
     name: "Queens College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Pawlos Sub Region"
   },
 
@@ -853,36 +966,42 @@ export const privateColleges: University[] = [
     id: generateId("Rift Valley Mexico"),
     name: "Rift Valley",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("Rift Valley University Adama"),
     name: "Rift Valley University Adama",
     type: 'private-college',
+    category: 'private',
     subRegion: "Adama"
   },
   {
     id: generateId("Rift Valley University Bishoftu Campus"),
     name: "Rift Valley University Bishoftu Campus",
     type: 'private-college',
+    category: 'private',
     subRegion: "Bishoftu"
   },
   {
     id: generateId("Rift Valley University Pawlos"),
     name: "Rift Valley University",
     type: 'private-college',
+    category: 'private',
     subRegion: "Pawlos Sub Region"
   },
   {
     id: generateId("Rohoboth 1 Medical College"),
     name: "Rohoboth -1 Medical College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Asela"
   },
   {
     id: generateId("Rohoboth 2 Medical College"),
     name: "Rohoboth -2 Medical College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Asela"
   },
 
@@ -891,28 +1010,33 @@ export const privateColleges: University[] = [
     id: generateId("Seven Star College"),
     name: "Seven-Star College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Piassa Sub Region"
   },
   {
     id: generateId("Shashemene Pharma"),
     name: "Shashemene Pharma",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Shashamene Pardyez"),
     name: "Shashamene Pardyez",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("St Lideta"),
     name: "St. Lideta",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("St Merry University"),
     name: "St. Merry University",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
 
@@ -921,12 +1045,14 @@ export const privateColleges: University[] = [
     id: generateId("Tegbared Polytechnic College"),
     name: "Tegbared Polytechnic College",
     type: 'private-college',
+    category: 'private',
     subRegion: "Mexico Sub Region"
   },
   {
     id: generateId("TMS"),
     name: "TMS",
     type: 'private-college',
+    category: 'private',
     subRegion: "Piassa Sub Region"
   },
 
@@ -935,12 +1061,14 @@ export const privateColleges: University[] = [
     id: generateId("Unity University"),
     name: "Unity University",
     type: 'private-college',
+    category: 'private',
     subRegion: "Bole Sub Region"
   },
   {
     id: generateId("Universal Medical College"),
     name: "Universal Medical College",
     type: 'private-college',
+    category: 'private',
     subRegion: "22 Sub Region"
   },
 
@@ -948,22 +1076,26 @@ export const privateColleges: University[] = [
   {
     id: generateId("Wolayta Sodo Agri College"),
     name: "Wolayta Sodo Agri College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Wolayta Sodo Infolink College"),
     name: "Wolayta Sodo Infolink College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Wolayta Sodo Pharma College"),
     name: "Wolayta Sodo Pharma College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
   {
     id: generateId("Wolayta Sodo Selihem Business College"),
     name: "Wolayta Sodo Selihem Business College",
-    type: 'private-college'
+    type: 'private-college',
+    category: 'private'
   },
 
   // Y
@@ -971,25 +1103,39 @@ export const privateColleges: University[] = [
     id: generateId("Yanet"),
     name: "Yanet",
     type: 'private-college',
+    category: 'private',
     subRegion: "Pawlos Sub Region"
   }
 ];
 
-// Combine all institutions (Universities + Private Colleges) sorted A-Z
-export const allInstitutions: University[] = [...universities, ...privateColleges].sort((a, b) => 
+// Combine all institutions (Government Universities + Private Colleges) sorted A-Z
+export const allInstitutions: University[] = [...governmentUniversities, ...privateColleges].sort((a, b) => 
   a.name.localeCompare(b.name)
 );
 
 // Helper functions
-export const getAllUniversities = () => universities;
+export const getAllUniversities = () => governmentUniversities;
 export const getAllPrivateColleges = () => privateColleges;
 export const getAllInstitutions = () => allInstitutions;
+
+// Get institutions by category
+export const getInstitutionsByCategory = (category: 'government' | 'private' | 'all') => {
+  if (category === 'government') return governmentUniversities;
+  if (category === 'private') return privateColleges;
+  return allInstitutions;
+};
+
+// Get government universities
+export const getGovernmentUniversities = () => governmentUniversities;
+
+// Get private colleges
+export const getPrivateCollegesList = () => privateColleges;
 
 export const getInstitutionById = (id: string) => {
   return allInstitutions.find(inst => inst.id === id);
 };
 
 export const getCampusesByUniversity = (universityId: string) => {
-  const university = universities.find(u => u.id === universityId);
+  const university = governmentUniversities.find(u => u.id === universityId);
   return university?.campuses || [];
 };

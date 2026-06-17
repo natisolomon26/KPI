@@ -1,4 +1,4 @@
-// components/AlumniForm.tsx (updated with dropdowns)
+// components/landing/AlumniForm.tsx
 'use client';
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -21,7 +21,11 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useRegistrations } from "@/hooks/useRegistrations";
-import { allInstitutions, getCampusesByUniversity, University } from "@/data/campus";
+import { 
+  getGovernmentUniversities, 
+  getPrivateCollegesList,
+  getCampusesByUniversity
+} from "@/data/campus";
 import Image from "next/image";
 
 // Generate deterministic particle positions without Math.random during render
@@ -71,22 +75,28 @@ export default function AlumniForm() {
   });
 
   const [availableCampuses, setAvailableCampuses] = useState<Array<{id: string, name: string}>>([]);
+  const [institutionType, setInstitutionType] = useState<'government' | 'private' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Get universities
+  const governmentUniversities = useMemo(() => getGovernmentUniversities(), []);
+  const privateColleges = useMemo(() => getPrivateCollegesList(), []);
 
   // Update campuses when university changes
   useEffect(() => {
     if (formData.university) {
-      const selectedUniv = allInstitutions.find(inst => inst.name === formData.university);
-      if (selectedUniv && selectedUniv.type === 'university') {
-        const campuses = getCampusesByUniversity(selectedUniv.id);
-        setAvailableCampuses(campuses);
-        // Reset campus selection if current selection not in new list
-        if (!campuses.find(c => c.name === formData.campus)) {
+      // Find the university in government list first, then private list
+      const selectedUniv = [...governmentUniversities, ...privateColleges].find(
+        inst => inst.name === formData.university
+      );
+      
+      if (selectedUniv && selectedUniv.type === 'university' && selectedUniv.campuses) {
+        setAvailableCampuses(selectedUniv.campuses);
+        if (!selectedUniv.campuses.find(c => c.name === formData.campus)) {
           setFormData(prev => ({ ...prev, campus: "" }));
         }
       } else {
-        // For private colleges or if no campuses found
         setAvailableCampuses([{ id: "main-campus", name: "Main Campus" }]);
         setFormData(prev => ({ ...prev, campus: "Main Campus" }));
       }
@@ -94,7 +104,7 @@ export default function AlumniForm() {
       setAvailableCampuses([]);
       setFormData(prev => ({ ...prev, campus: "" }));
     }
-  }, [formData.university]);
+  }, [formData.university, governmentUniversities, privateColleges]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -421,10 +431,60 @@ export default function AlumniForm() {
                 </motion.div>
               </div>
 
-              {/* University Dropdown */}
+              {/* Institution Type Selection */}
+              <motion.div variants={fadeLeft}>
+                <label className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-3">
+                  Institution Type *
+                </label>
+                <div className="flex gap-6 mb-4">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="institutionType"
+                        value="government"
+                        checked={institutionType === 'government'}
+                        onChange={() => {
+                          setInstitutionType('government');
+                          setFormData({ ...formData, university: '', campus: '' });
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="w-5 h-5 rounded-full border-2 border-slate-500 peer-checked:border-sky-400 peer-checked:bg-transparent transition-all"></div>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 scale-0 peer-checked:scale-100 transition-transform duration-200"></div>
+                    </div>
+                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                      Government
+                    </span>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="institutionType"
+                        value="private"
+                        checked={institutionType === 'private'}
+                        onChange={() => {
+                          setInstitutionType('private');
+                          setFormData({ ...formData, university: '', campus: '' });
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="w-5 h-5 rounded-full border-2 border-slate-500 peer-checked:border-sky-400 peer-checked:bg-transparent transition-all"></div>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 scale-0 peer-checked:scale-100 transition-transform duration-200"></div>
+                    </div>
+                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                      Private
+                    </span>
+                  </label>
+                </div>
+              </motion.div>
+
+              {/* University Dropdown with Government and Private Sections */}
               <motion.div variants={fadeLeft}>
                 <label htmlFor="university" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
-                  University/College *
+                    University/College *
                 </label>
                 <div className="relative">
                   <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
@@ -434,19 +494,38 @@ export default function AlumniForm() {
                     value={formData.university}
                     onChange={handleChange}
                     required
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !institutionType}
                     className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
                       fieldErrors.university 
                         ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
                         : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
                     }`}
                   >
-                    <option value="" className="bg-slate-800">Select your university or college</option>
-                    {allInstitutions.map((inst) => (
-                      <option key={inst.id} value={inst.name} className="bg-slate-800">
-                        {inst.name} {inst.type === 'private-college' ? '(Private College)' : '(University)'}
-                      </option>
-                    ))}
+                    <option value="" className="bg-slate-800">
+                      {!institutionType ? 'Select institution type first' : 'Select your university or college'}
+                    </option>
+                    
+                    {/* Government Universities Section */}
+                    {institutionType === 'government' && (
+                      <optgroup label="────────── Government Universities ──────────" className="bg-slate-800 text-sky-300 font-bold">
+                        {governmentUniversities.map((inst) => (
+                          <option key={inst.id} value={inst.name} className="bg-slate-800 text-white font-normal">
+                            {inst.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    
+                    {/* Private Colleges Section */}
+                    {institutionType === 'private' && (
+                      <optgroup label="────────── Private Colleges ──────────" className="bg-slate-800 text-sky-300 font-bold">
+                        {privateColleges.map((inst) => (
+                          <option key={inst.id} value={inst.name} className="bg-slate-800 text-white font-normal">
+                            {inst.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
@@ -603,7 +682,7 @@ export default function AlumniForm() {
             </form>
           </motion.div>
 
-          {/* Right Side - Content */}
+          {/* Right Side - Simple Content */}
           <motion.div
             variants={staggerContainer}
             initial="hidden"
@@ -635,33 +714,16 @@ export default function AlumniForm() {
                 variants={fadeRight}
                 className="text-base text-slate-300 leading-relaxed"
               >
-                Become part of an exclusive network of graduates who are making an impact 
-                in their workplaces, churches, and communities. Access mentorship, resources, 
-                and lifelong connections that will accelerate your Kingdom calling.
+                EvaSUE is a fellowship of students and graduates dedicated to following and witnessing to Jesus Christ as Lord and Savior.
+              </motion.p>
+              
+              <motion.p 
+                variants={fadeRight}
+                className="text-base text-slate-300 leading-relaxed"
+              >
+                We are committed to making multiple disciples through various discipleship programs and by equipping students to evangelize on campus. We equip students to be servant leaders and mobilize them for mission.
               </motion.p>
 
-              {/* Benefits List */}
-              <motion.div 
-                variants={fadeRight}
-                className="space-y-3 pt-4"
-              >
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-400" />
-                  <span className="text-sm text-slate-300">Connect with 10,000+ alumni worldwide</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-400" />
-                  <span className="text-sm text-slate-300">Access exclusive job opportunities</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-400" />
-                  <span className="text-sm text-slate-300">Attend premier networking events</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-sky-400" />
-                  <span className="text-sm text-slate-300">Receive monthly leadership training</span>
-                </div>
-              </motion.div>
             </div>
           </motion.div>
         </div>
