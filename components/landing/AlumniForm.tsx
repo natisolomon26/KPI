@@ -17,7 +17,11 @@ import {
   Loader2,
   School,
   BookOpen,
-  ChevronDown
+  ChevronDown,
+  Sparkles,
+  Target,
+  Heart,
+  Globe
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useRegistrations } from "@/hooks/useRegistrations";
@@ -86,7 +90,6 @@ export default function AlumniForm() {
   // Update campuses when university changes
   useEffect(() => {
     if (formData.university) {
-      // Find the university in government list first, then private list
       const selectedUniv = [...governmentUniversities, ...privateColleges].find(
         inst => inst.name === formData.university
       );
@@ -133,6 +136,15 @@ export default function AlumniForm() {
       opacity: 1, 
       x: 0,
       transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
+  const fadeUp: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6 }
     }
   };
 
@@ -308,18 +320,124 @@ export default function AlumniForm() {
       <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
           
-          {/* Left Side - Form Fields */}
+          {/* Left Side - Content with Logo & Info */}
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate={controls}
+            className="order-1"
+          >
+            <div className="space-y-6">
+              {/* Logo */}
+              <motion.div 
+                variants={fadeLeft}
+                className="flex justify-center lg:justify-start"
+              >
+                <div className="relative w-40 h-40 lg:w-48 lg:h-48">
+                  <Image
+                    src="/logo/logo.svg"
+                    alt="EvaSUE Logo"
+                    fill
+                    className="object-contain drop-shadow-2xl"
+                    priority
+                  />
+                </div>
+              </motion.div>
+
+              {/* Alumni Network Badge */}
+              <motion.div variants={fadeLeft} className="inline-flex items-center gap-2">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                  <Users className="w-4 h-4 text-sky-400" />
+                  <span className="text-xs font-black tracking-wider text-sky-300 uppercase">Alumni Network</span>
+                </div>
+              </motion.div>
+
+              {/* Main Heading */}
+              <motion.h2 
+                variants={fadeLeft}
+                className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tighter"
+              >
+                <span className="text-white">Join Our{' '}</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400">
+                  Global Alumni
+                </span>
+              </motion.h2>
+
+              {/* Description */}
+              <motion.p 
+                variants={fadeLeft}
+                className="text-base text-slate-300 leading-relaxed"
+              >
+                EvaSUE is a fellowship of students and graduates dedicated to following and witnessing to Jesus Christ as Lord and Savior.
+              </motion.p>
+              
+              <motion.p 
+                variants={fadeLeft}
+                className="text-base text-slate-300 leading-relaxed"
+              >
+                We are calling graduates and associates to invest in the next generation of student leaders. By mentoring, coaching, and walking alongside students, you can help shape the future of campus ministry in Ethiopia and beyond.
+              </motion.p>
+
+              {/* Core Values */}
+              <motion.div 
+                variants={fadeLeft}
+                className="space-y-3 pt-4"
+              >
+                <h3 className="text-sm font-bold text-sky-300 uppercase tracking-wider">Our Core Commitments</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center flex-shrink-0">
+                      <Target className="w-4 h-4 text-sky-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white text-sm">Making Disciples</p>
+                      <p className="text-xs text-slate-400">Intentional discipleship & mentorship</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <Heart className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white text-sm">Campus Evangelism</p>
+                      <p className="text-xs text-slate-400">Equipping students to share faith</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <Users className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white text-sm">Servant Leadership</p>
+                      <p className="text-xs text-slate-400">Developing leaders who serve</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <Globe className="w-4 h-4 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white text-sm">Global Mission</p>
+                      <p className="text-xs text-slate-400">Kingdom impact worldwide</p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Right Side - Form Fields */}
           <motion.div
             ref={ref}
             variants={staggerContainer}
             initial="hidden"
             animate={controls}
-            className="order-2 lg:order-1"
+            className="order-2"
           >
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name Row - First & Last */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <motion.div variants={fadeLeft}>
+                <motion.div variants={fadeRight}>
                   <label htmlFor="firstName" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     First Name *
                   </label>
@@ -346,7 +464,7 @@ export default function AlumniForm() {
                   )}
                 </motion.div>
 
-                <motion.div variants={fadeLeft}>
+                <motion.div variants={fadeRight}>
                   <label htmlFor="lastName" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     Last Name *
                   </label>
@@ -376,7 +494,7 @@ export default function AlumniForm() {
 
               {/* Email & Phone Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <motion.div variants={fadeLeft}>
+                <motion.div variants={fadeRight}>
                   <label htmlFor="email" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     Email Address *
                   </label>
@@ -403,7 +521,7 @@ export default function AlumniForm() {
                   )}
                 </motion.div>
 
-                <motion.div variants={fadeLeft}>
+                <motion.div variants={fadeRight}>
                   <label htmlFor="phoneNumber" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     Phone Number *
                   </label>
@@ -432,7 +550,7 @@ export default function AlumniForm() {
               </div>
 
               {/* Institution Type Selection */}
-              <motion.div variants={fadeLeft}>
+              <motion.div variants={fadeRight}>
                 <label className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-3">
                   Institution Type *
                 </label>
@@ -481,8 +599,8 @@ export default function AlumniForm() {
                 </div>
               </motion.div>
 
-              {/* University Dropdown with Government and Private Sections */}
-              <motion.div variants={fadeLeft}>
+              {/* University Dropdown */}
+              <motion.div variants={fadeRight}>
                 <label htmlFor="university" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     University/College *
                 </label>
@@ -505,7 +623,6 @@ export default function AlumniForm() {
                       {!institutionType ? 'Select institution type first' : 'Select your university or college'}
                     </option>
                     
-                    {/* Government Universities Section */}
                     {institutionType === 'government' && (
                       <optgroup label="────────── Government Universities ──────────" className="bg-slate-800 text-sky-300 font-bold">
                         {governmentUniversities.map((inst) => (
@@ -516,7 +633,6 @@ export default function AlumniForm() {
                       </optgroup>
                     )}
                     
-                    {/* Private Colleges Section */}
                     {institutionType === 'private' && (
                       <optgroup label="────────── Private Colleges ──────────" className="bg-slate-800 text-sky-300 font-bold">
                         {privateColleges.map((inst) => (
@@ -535,7 +651,7 @@ export default function AlumniForm() {
               </motion.div>
 
               {/* Campus Dropdown */}
-              <motion.div variants={fadeLeft}>
+              <motion.div variants={fadeRight}>
                 <label htmlFor="campus" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                   Campus *
                 </label>
@@ -572,7 +688,7 @@ export default function AlumniForm() {
 
               {/* Department & Graduation Year Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <motion.div variants={fadeLeft}>
+                <motion.div variants={fadeRight}>
                   <label htmlFor="department" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     Department/Field of Study *
                   </label>
@@ -599,7 +715,7 @@ export default function AlumniForm() {
                   )}
                 </motion.div>
 
-                <motion.div variants={fadeLeft}>
+                <motion.div variants={fadeRight}>
                   <label htmlFor="graduationYear" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                     Graduation Year *
                   </label>
@@ -632,7 +748,7 @@ export default function AlumniForm() {
               </div>
 
               {/* Current Location */}
-              <motion.div variants={fadeLeft}>
+              <motion.div variants={fadeRight}>
                 <label htmlFor="currentLocation" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
                   Current Location *
                 </label>
@@ -661,7 +777,7 @@ export default function AlumniForm() {
 
               {/* Submit Button */}
               <motion.button
-                variants={fadeLeft}
+                variants={fadeRight}
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-sky-900 rounded-xl font-bold shadow-[0_20px_35px_-10px_rgba(14,165,233,0.4)] hover:shadow-[0_25px_40px_-12px_rgba(14,165,233,0.5)] transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
@@ -680,51 +796,6 @@ export default function AlumniForm() {
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 opacity-0 group-hover:opacity-10 transition-opacity" />
               </motion.button>
             </form>
-          </motion.div>
-
-          {/* Right Side - Simple Content */}
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate={controls}
-            className="order-1 lg:order-2"
-          >
-            <div className="space-y-6">
-              {/* Alumni Network Badge */}
-              <motion.div variants={fadeRight} className="inline-flex items-center gap-2">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
-                  <Users className="w-4 h-4 text-sky-400" />
-                  <span className="text-xs font-black tracking-wider text-sky-300 uppercase">Alumni Network</span>
-                </div>
-              </motion.div>
-
-              {/* Main Heading */}
-              <motion.h2 
-                variants={fadeRight}
-                className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tighter"
-              >
-                <span className="text-white">Join Our{' '}</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400">
-                  Global Alumni
-                </span>
-              </motion.h2>
-
-              {/* Description */}
-              <motion.p 
-                variants={fadeRight}
-                className="text-base text-slate-300 leading-relaxed"
-              >
-                EvaSUE is a fellowship of students and graduates dedicated to following and witnessing to Jesus Christ as Lord and Savior.
-              </motion.p>
-              
-              <motion.p 
-                variants={fadeRight}
-                className="text-base text-slate-300 leading-relaxed"
-              >
-                We are committed to making multiple disciples through various discipleship programs and by equipping students to evangelize on campus. We equip students to be servant leaders and mobilize them for mission.
-              </motion.p>
-
-            </div>
           </motion.div>
         </div>
       </div>
