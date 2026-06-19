@@ -378,51 +378,7 @@ export default function AlumniForm() {
                 We are calling graduates and associates to invest in the next generation of student leaders. By mentoring, coaching, and walking alongside students, you can help shape the future of campus ministry in Ethiopia and beyond.
               </motion.p>
 
-              {/* Core Values */}
-              <motion.div 
-                variants={fadeLeft}
-                className="space-y-3 pt-4"
-              >
-                <h3 className="text-sm font-bold text-sky-300 uppercase tracking-wider">Our Core Commitments</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <div className="w-8 h-8 rounded-full bg-sky-500/20 flex items-center justify-center flex-shrink-0">
-                      <Target className="w-4 h-4 text-sky-400" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white text-sm">Making Disciples</p>
-                      <p className="text-xs text-slate-400">Intentional discipleship & mentorship</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                      <Heart className="w-4 h-4 text-blue-400" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white text-sm">Campus Evangelism</p>
-                      <p className="text-xs text-slate-400">Equipping students to share faith</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                      <Users className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white text-sm">Servant Leadership</p>
-                      <p className="text-xs text-slate-400">Developing leaders who serve</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                      <Globe className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white text-sm">Global Mission</p>
-                      <p className="text-xs text-slate-400">Kingdom impact worldwide</p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+              
             </div>
           </motion.div>
 
