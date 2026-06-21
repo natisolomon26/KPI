@@ -52,11 +52,24 @@ const generateParticlePositions = (count: number) => {
 
 export default function AlumniForm() {
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const controls = useAnimation();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.2 });
   const { showSuccess, showError, showLoading, dismiss } = useToast();
   const { submitRegistration } = useRegistrations();
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Parallax effects matching hero
   const { scrollY } = useScroll();
@@ -121,30 +134,31 @@ export default function AlumniForm() {
     return () => clearTimeout(timer);
   }, [controls, isInView]);
 
+  // Animation variants - reduced for mobile
   const fadeLeft: Variants = {
-    hidden: { opacity: 0, x: -50 },
+    hidden: isMobile ? { opacity: 0 } : { opacity: 0, x: -50 },
     visible: { 
       opacity: 1, 
       x: 0,
-      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+      transition: { duration: isMobile ? 0.3 : 0.8, ease: [0.22, 1, 0.36, 1] }
     }
   };
 
   const fadeRight: Variants = {
-    hidden: { opacity: 0, x: 50 },
+    hidden: isMobile ? { opacity: 0 } : { opacity: 0, x: 50 },
     visible: { 
       opacity: 1, 
       x: 0,
-      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
+      transition: { duration: isMobile ? 0.3 : 0.8, ease: [0.22, 1, 0.36, 1] }
     }
   };
 
   const fadeUp: Variants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: isMobile ? { opacity: 0 } : { opacity: 0, y: 20 },
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.6 }
+      transition: { duration: isMobile ? 0.3 : 0.6 }
     }
   };
 
@@ -153,8 +167,8 @@ export default function AlumniForm() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
+        staggerChildren: isMobile ? 0.05 : 0.1,
+        delayChildren: isMobile ? 0.05 : 0.2
       }
     }
   };
@@ -286,8 +300,8 @@ export default function AlumniForm() {
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
 
-      {/* Hero Particles - matching hero */}
-      {mounted && (
+      {/* Hero Particles - matching hero - hidden on mobile */}
+      {mounted && !isMobile && (
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           {particlePositions.map((pos, i) => (
             <motion.div
@@ -388,7 +402,7 @@ export default function AlumniForm() {
             variants={staggerContainer}
             initial="hidden"
             animate={controls}
-            className="order-2"
+            className="order-1"
           >
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Name Row - First & Last */}
