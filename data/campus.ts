@@ -596,12 +596,20 @@ export const privateColleges: University[] = [
     category: 'private',
     subRegion: "Piassa Sub Region"
   },
+ 
   {
     id: generateId("Adama General Hospital Medical College"),
     name: "Adama General Hospital Medical College",
     type: 'private-college',
     category: 'private',
     subRegion: "Adama"
+  },
+   {
+    id: generateId("Addis Ababa Medical College"),
+    name: "Addis Ababa Medical College",
+    type: 'private-college',
+    category: 'private',
+    subRegion: "Piassa Sub Region"
   },
   {
     id: generateId("Admas College"),
@@ -937,11 +945,19 @@ export const privateColleges: University[] = [
   },
   {
     id: generateId("Microlink College Piassa"),
-    name: "Microlink College",
+    name: "Microlink Information TechnologyCollege",
     type: 'private-college',
     category: 'private',
     subRegion: "Piassa Sub Region"
   },
+  {
+    id: generateId("Minilik Medical College"),
+    name: "Minilik Medical College",
+    type: 'private-college',
+    category: 'private',
+    subRegion: "Piassa Sub Region"
+  },
+  
 
   // N
   {

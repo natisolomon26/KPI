@@ -347,19 +347,19 @@ export default function AlumniForm() {
             <div className="space-y-6">
               {/* Logo */}
               <motion.div 
-                variants={fadeLeft}
-                className="flex justify-center lg:justify-start"
-              >
-                <div className="relative w-40 h-40 lg:w-48 lg:h-48">
-                  <Image
-                    src="/logo/logo.svg"
-                    alt="EvaSUE Logo"
-                    fill
-                    className="object-contain drop-shadow-2xl"
-                    priority
-                  />
-                </div>
-              </motion.div>
+  variants={fadeLeft}
+  className="flex justify-start"
+>
+  <div className="relative w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48">
+    <Image
+      src="/logo/logo.svg"
+      alt="EvaSUE Logo"
+      fill
+      className="object-contain drop-shadow-2xl"
+      priority
+    />
+  </div>
+</motion.div>
 
               {/* Alumni Network Badge */}
               <motion.div variants={fadeLeft} className="inline-flex items-center gap-2">
