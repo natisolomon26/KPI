@@ -127,48 +127,51 @@ export default function AlumniForm() {
       setMounted(true);
     }, 0);
     
-    if (isInView) {
+    if (isInView && !isMobile) {
       controls.start("visible");
+    } else if (isMobile) {
+      // On mobile, set visible immediately
+      controls.set("visible");
     }
     
     return () => clearTimeout(timer);
-  }, [controls, isInView]);
+  }, [controls, isInView, isMobile]);
 
   // Animation variants - reduced for mobile
   const fadeLeft: Variants = {
-    hidden: isMobile ? { opacity: 0 } : { opacity: 0, x: -50 },
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, x: -50 },
     visible: { 
       opacity: 1, 
       x: 0,
-      transition: { duration: isMobile ? 0.3 : 0.8, ease: [0.22, 1, 0.36, 1] }
+      transition: { duration: isMobile ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }
     }
   };
 
   const fadeRight: Variants = {
-    hidden: isMobile ? { opacity: 0 } : { opacity: 0, x: 50 },
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, x: 50 },
     visible: { 
       opacity: 1, 
       x: 0,
-      transition: { duration: isMobile ? 0.3 : 0.8, ease: [0.22, 1, 0.36, 1] }
+      transition: { duration: isMobile ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }
     }
   };
 
   const fadeUp: Variants = {
-    hidden: isMobile ? { opacity: 0 } : { opacity: 0, y: 20 },
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, y: 20 },
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: isMobile ? 0.3 : 0.6 }
+      transition: { duration: isMobile ? 0 : 0.6 }
     }
   };
 
   const staggerContainer: Variants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 1 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: isMobile ? 0.05 : 0.1,
-        delayChildren: isMobile ? 0.05 : 0.2
+        staggerChildren: isMobile ? 0 : 0.1,
+        delayChildren: isMobile ? 0 : 0.2
       }
     }
   };
