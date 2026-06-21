@@ -1,4 +1,4 @@
-// app/layout.tsx (updated)
+// app/layout.tsx (updated with favicon)
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -53,6 +53,11 @@ export const metadata: Metadata = {
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
+  },
+  // Add favicon icons here - using the same path as your other project
+  icons: {
+    icon: '/logo/logo.svg',
+    apple: '/logo/logo.svg',
   },
 };
 
