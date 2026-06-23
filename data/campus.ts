@@ -554,6 +554,17 @@ export const governmentUniversities: University[] = [
     ]
   },
   {
+    id: generateId("Wollega University"),
+    name: "Wollega University",
+    type: 'university',
+    category: 'government',
+    campuses: [
+      { id: generateId("Main Campus Nekemte"), name: "Main Campus" },
+      { id: generateId("Shambu Campus"), name: "Shambu Campus" },
+      { id: generateId("Gimbi Campus"), name: "Gimbi Campus" },
+    ]
+  },
+  {
     id: generateId("Woldia University"),
     name: "Woldia University",
     type: 'university',
