@@ -1,17 +1,17 @@
 // app/api/registrations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Registration from '@/models/Registrations';
-import { verifyAuth } from '@/lib/auth';
+import Registration from '@/models/Registration';
+import { verifyAuth, verifyAdmin } from '@/lib/auth';
 
-// GET /api/registrations - Get all registrations (protected)
+// GET /api/registrations - Get all registrations (authenticated users)
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication
+    // Verify authentication (both user and admin can view)
     const authResult = await verifyAuth(request);
     if (!authResult.isAuthenticated) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized. Please login.' },
         { status: 401 }
       );
     }
@@ -55,6 +55,41 @@ export async function GET(request: NextRequest) {
 
     const total = await Registration.countDocuments(query);
 
+    // Get total statistics (for all data, not filtered)
+    const totalStats = await Registration.aggregate([
+      {
+        $facet: {
+          totalCount: [{ $count: 'count' }],
+          uniqueUniversities: [
+            { $group: { _id: '$university' } },
+            { $count: 'count' }
+          ],
+          thisMonth: [
+            {
+              $match: {
+                registeredAt: {
+                  $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                  $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          uniqueLocations: [
+            { $group: { _id: '$currentLocation' } },
+            { $count: 'count' }
+          ]
+        }
+      }
+    ]);
+
+    const stats = {
+      total: totalStats[0]?.totalCount[0]?.count || 0,
+      universities: totalStats[0]?.uniqueUniversities[0]?.count || 0,
+      thisMonth: totalStats[0]?.thisMonth[0]?.count || 0,
+      countries: totalStats[0]?.uniqueLocations[0]?.count || 0,
+    };
+
     return NextResponse.json({
       success: true,
       data: registrations,
@@ -64,6 +99,8 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
+      stats, // Add stats to the response
+      user: authResult.user,
     });
   } catch (error) {
     console.error('Error fetching registrations:', error);
@@ -74,8 +111,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST /api/registrations - Create new registration (authenticated users)
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication (both user and admin can create)
+    const authResult = await verifyAuth(request);
+    if (!authResult.isAuthenticated) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login.' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     
     // Validate required fields
@@ -113,7 +160,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new registration with all fields
+    // Create new registration
     const registration = await Registration.create({
       firstName: body.firstName,
       lastName: body.lastName,
@@ -124,6 +171,7 @@ export async function POST(request: NextRequest) {
       department: body.department,
       graduationYear: body.graduationYear,
       currentLocation: body.currentLocation,
+      createdBy: authResult.user?.userId, // Track who created it
     });
 
     return NextResponse.json({

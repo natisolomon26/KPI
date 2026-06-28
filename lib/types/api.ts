@@ -33,13 +33,16 @@ export interface LoginResponse {
   };
 }
 
-export interface User {
+// lib/types.ts
+export interface UserResponse {
   id: string;
   email: string;
-  name: string;
-  role: 'admin' | 'user';
+  firstName: string;
+  lastName: string;
+  role: 'user' | 'admin';
+  createdAt: Date;
+  updatedAt: Date;
 }
-
 // types/registration.ts
 
 

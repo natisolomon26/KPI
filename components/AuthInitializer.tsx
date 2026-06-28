@@ -1,17 +1,20 @@
 // components/AuthInitializer.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 
 export function AuthInitializer() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated } = useAuthStore();
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    // Initialize authentication check when the app loads
-    checkAuth();
-  }, [checkAuth]);
+    // Only check auth once and if not already authenticated
+    if (!hasInitialized.current && !isAuthenticated) {
+      hasInitialized.current = true;
+      checkAuth();
+    }
+  }, [checkAuth, isAuthenticated]);
 
-  // This component doesn't render anything visible
   return null;
 }

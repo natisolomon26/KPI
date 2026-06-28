@@ -1,84 +1,229 @@
-// store/auth.store.ts (fixed)
+// store/auth.store.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { User, AuthState } from '@/types/auth.types';
+import { authService } from '@/services/auth.service';
 
-interface User {
-  email: string;
-  role: string;
-  name: string;
-}
-
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+interface AuthActions {
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (data: { 
+    email: string; 
+    password: string; 
+    firstName: string; 
+    lastName: string; 
+    role?: 'user' | 'admin' 
+  }) => Promise<{ success: boolean; message?: string }>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   setUser: (user: User | null) => void;
   setAuthenticated: (value: boolean) => void;
-  setLoading: (value: boolean) => void;
-  checkAuth: () => void;
-  logout: () => void;
+  setError: (error: string | null) => void;
+  clearError: () => void;
+  reset: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
+interface AuthStore extends AuthState, AuthActions {}
+
+export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
+      // Initial state
       user: null,
       isAuthenticated: false,
-      isLoading: true,
-      
-      setUser: (user) => set({ user }),
-      
-      setAuthenticated: (value) => set({ isAuthenticated: value }),
-      
-      setLoading: (value) => set({ isLoading: value }),
-      
-      checkAuth: () => {
-        // Only run on client side
-        if (typeof window === 'undefined') return;
+      isLoading: false,
+      error: null,
+
+      /**
+       * Login action
+       */
+      login: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
         
-        console.log('Checking authentication...');
+        try {
+          const response = await authService.login({ email, password });
+          
+          if (response.success && response.user) {
+            set({
+              user: response.user,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            return { success: true, message: response.message };
+          } else {
+            set({
+              isLoading: false,
+              error: response.message || 'Login failed',
+            });
+            return { success: false, message: response.message || 'Login failed' };
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Login failed';
+          set({ 
+            isLoading: false, 
+            error: message,
+            user: null,
+            isAuthenticated: false,
+          });
+          return { success: false, message };
+        }
+      },
+
+      /**
+       * Register action
+       */
+      register: async (data) => {
+        set({ isLoading: true, error: null });
         
-        // Check if token exists in cookies
-        const hasCookieToken = document.cookie.split(';').some(cookie => 
-          cookie.trim().startsWith('auth-token=')
-        );
+        try {
+          const response = await authService.register(data);
+          
+          if (response.success) {
+            // Don't automatically log in - user needs to login
+            set({
+              isLoading: false,
+              error: null,
+              // Keep user as null - they need to login manually
+              user: null,
+              isAuthenticated: false,
+            });
+            return { success: true, message: response.message };
+          } else {
+            set({
+              isLoading: false,
+              error: response.message || 'Registration failed',
+            });
+            return { success: false, message: response.message || 'Registration failed' };
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Registration failed';
+          set({ 
+            isLoading: false, 
+            error: message,
+            user: null,
+            isAuthenticated: false,
+          });
+          return { success: false, message };
+        }
+      },
+
+      /**
+       * Logout action
+       */
+      logout: async () => {
+        set({ isLoading: true });
         
-        // Check if token exists in localStorage
-        const hasLocalToken = localStorage.getItem('auth-token');
+        try {
+          await authService.logout();
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+        } catch (error) {
+          console.error('Logout error:', error);
+          // Still clear state even if API fails
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+        }
+      },
+
+      /**
+       * Check authentication status
+       */
+      checkAuth: async () => {
+        // Don't check if already authenticated and user exists
+        const { isAuthenticated, user } = get();
+        if (isAuthenticated && user) {
+          return;
+        }
+
+        set({ isLoading: true });
         
-        const isAuth = hasCookieToken || !!hasLocalToken;
-        
-        console.log('Auth status:', isAuth);
-        
+        try {
+          const response = await authService.getCurrentUser();
+          
+          if (response.success && response.user) {
+            set({
+              user: response.user,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            set({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null,
+            });
+          }
+        } catch (error) {
+          console.error('Check auth error:', error);
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+          });
+        }
+      },
+
+      /**
+       * Set user
+       */
+      setUser: (user: User | null) => {
         set({ 
-          isAuthenticated: isAuth, 
-          isLoading: false 
+          user, 
+          isAuthenticated: !!user,
         });
       },
-      
-      logout: () => {
-        if (typeof window === 'undefined') return;
-        
-        // Clear cookie
-        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        // Clear localStorage
-        localStorage.removeItem('auth-token');
-        // Clear persisted store
-        localStorage.removeItem('auth-storage');
-        
-        set({ 
-          user: null, 
-          isAuthenticated: false, 
-          isLoading: false 
+
+      /**
+       * Set authentication status
+       */
+      setAuthenticated: (value: boolean) => {
+        set({ isAuthenticated: value });
+      },
+
+      /**
+       * Set error
+       */
+      setError: (error: string | null) => {
+        set({ error });
+      },
+
+      /**
+       * Clear error
+       */
+      clearError: () => {
+        set({ error: null });
+      },
+
+      /**
+       * Reset store
+       */
+      reset: () => {
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
         });
+        localStorage.removeItem('auth-storage');
       },
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ 
-        user: state.user, 
-        isAuthenticated: state.isAuthenticated 
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )

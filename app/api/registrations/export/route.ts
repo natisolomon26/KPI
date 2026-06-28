@@ -1,7 +1,7 @@
 // app/api/registrations/export/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Registration from '@/models/Registrations';
+import Registration from '@/models/Registration';
 import { verifyAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {

@@ -1,18 +1,15 @@
-// app/login/page.tsx (fixed)
+// app/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, GraduationCap, Eye, EyeOff } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser, setAuthenticated, isAuthenticated, isLoading: authLoading, checkAuth } = useAuthStore();
+  const { login, isLoading, isAuthenticated, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,21 +17,30 @@ export default function LoginPage() {
     password: '',
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
-  const [isClient, setIsClient] = useState(false);
 
-  // Mark when client-side rendering starts
+  // Redirect if already authenticated
   useEffect(() => {
-    setIsClient(true);
-    checkAuth();
-  }, [checkAuth]);
-
-  // Redirect if already authenticated (only after client-side check)
-  useEffect(() => {
-    if (isClient && !authLoading && isAuthenticated) {
-      console.log('Already authenticated, redirecting to dashboard...');
+    if (isAuthenticated && !isLoading) {
       router.replace('/dashboard');
     }
-  }, [isClient, authLoading, isAuthenticated, router]);
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-white to-blue-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated, don't render
+  if (isAuthenticated) {
+    return null;
+  }
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -61,37 +67,14 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      console.log('Attempting login...');
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-      console.log('Login response:', data);
-
-      if (response.ok && data.success) {
-        // Store token in cookie
-        document.cookie = `auth-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
-        // Also store in localStorage as backup
-        localStorage.setItem('auth-token', data.token);
-
-        // Update auth store
-        setUser(data.user);
-        setAuthenticated(true);
-
-        console.log('Login successful, redirecting to dashboard...');
-
-        // Use router.push instead of window.location.href
+      const result = await login(formData.email, formData.password);
+      
+      if (result.success) {
         router.push('/dashboard');
       } else {
-        setErrors({ general: data.error || 'Login failed. Please check your credentials.' });
+        setErrors({ general: result.message || 'Login failed' });
       }
     } catch (error) {
-      console.error('Login error:', error);
       setErrors({ general: 'An error occurred. Please try again.' });
     } finally {
       setIsLoggingIn(false);
@@ -101,37 +84,14 @@ export default function LoginPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
+    if (error) clearError();
   };
-
-  // Don't render anything until client-side to prevent hydration issues
-  if (!isClient) {
-    return null;
-  }
-
-  // Show loading state while checking authentication
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-white to-blue-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-slate-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If already authenticated, don't render the login form (will redirect)
-  if (isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
@@ -151,8 +111,7 @@ export default function LoginPage() {
         transition={{ duration: 0.7, type: "spring", stiffness: 100 }}
         className="relative z-10 w-full max-w-md"
       >
-        <Card className="p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/60 bg-white/70 backdrop-blur-2xl rounded-3xl">
-          {/* Logo */}
+        <div className="p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/60 bg-white/70 backdrop-blur-2xl rounded-3xl">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -166,20 +125,32 @@ export default function LoginPage() {
             <p className="text-slate-600 mt-2">Sign in to your admin account</p>
           </motion.div>
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Email Address"
-              name="email"
-              type="email"
-              placeholder="admin@evasue.org"
-              value={formData.email}
-              onChange={handleInputChange}
-              icon={Mail}
-              error={errors.email}
-              autoComplete="email"
-              disabled={isLoggingIn}
-            />
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`
+                    w-full pl-10 pr-3 py-2 bg-white border rounded-lg
+                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+                    transition-all duration-200
+                    ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
+                  `}
+                  placeholder="admin@example.com"
+                  disabled={isLoggingIn}
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-600">{errors.email}</p>
+              )}
+            </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -214,29 +185,46 @@ export default function LoginPage() {
               )}
             </div>
 
-            {errors.general && (
+            {(errors.general || error) && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="p-3 bg-red-50 border border-red-200 rounded-lg"
               >
-                <p className="text-sm text-red-600">{errors.general}</p>
+                <p className="text-sm text-red-600">{errors.general || error}</p>
               </motion.div>
             )}
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              fullWidth
-              isLoading={isLoggingIn}
-              className="mt-6"
+              disabled={isLoggingIn}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-sky-600 to-blue-600 rounded-lg hover:from-sky-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In
-            </Button>
-          </form>
+              {isLoggingIn ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" />
+                  Sign In
+                </>
+              )}
+            </button>
 
-        </Card>
+<p className="text-center text-sm text-slate-600 mt-4">
+  Don't have an account?{' '}
+  <button
+    type="button"
+    onClick={() => router.push('/register')}
+    className="text-sky-600 hover:text-sky-700 font-medium hover:underline transition-colors"
+  >
+    Create one here
+  </button>
+</p>
+          </form>
+        </div>
       </motion.div>
     </div>
   );

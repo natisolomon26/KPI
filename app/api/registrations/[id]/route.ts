@@ -1,40 +1,29 @@
-// app/api/registrations/[id]/route.ts (fixed)
+// app/api/registrations/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Registration from '@/models/Registrations';
-import { verifyAuth } from '@/lib/auth';
-import mongoose from 'mongoose';
+import Registration from '@/models/Registration';
+import { verifyAuth, verifyAdmin } from '@/lib/auth';
 
-// GET /api/registrations/[id] - Get single registration (protected)
+// GET /api/registrations/[id] - Get single registration (authenticated users)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
     const authResult = await verifyAuth(request);
     if (!authResult.isAuthenticated) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized. Please login.' },
         { status: 401 }
       );
     }
 
-    // Await params to get the id
-    const { id } = await params;
-
-    // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid registration ID' },
-        { status: 400 }
-      );
-    }
-
     await dbConnect();
-
+    
+    // Await params before accessing
+    const { id } = await params;
     const registration = await Registration.findById(id);
-
+    
     if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
@@ -55,58 +44,29 @@ export async function GET(
   }
 }
 
-// PUT /api/registrations/[id] - Update registration (protected)
+// PUT /api/registrations/[id] - Update registration (admin only)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
+    // Verify admin access (only admins can update)
+    const authResult = await verifyAdmin(request);
     if (!authResult.isAuthenticated) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: authResult.error || 'Unauthorized. Admin access required.' },
+        { status: 403 }
       );
     }
 
-    const { id } = await params;
     const body = await request.json();
-
-    // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid registration ID' },
-        { status: 400 }
-      );
-    }
-
     await dbConnect();
 
-    // Check if email already exists for another registration
-    if (body.email) {
-      const existingRegistration = await Registration.findOne({
-        email: body.email,
-        _id: { $ne: id },
-      });
-      if (existingRegistration) {
-        return NextResponse.json(
-          { error: 'Email already registered' },
-          { status: 409 }
-        );
-      }
-    }
+    // Await params before accessing
+    const { id } = await params;
 
-    // Remove fields that shouldn't be updated
-    delete body._id;
-    delete body.registeredAt;
-
-    const registration = await Registration.findByIdAndUpdate(
-      id,
-      { ...body, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    );
-
+    // Find registration
+    const registration = await Registration.findById(id);
     if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
@@ -114,10 +74,69 @@ export async function PUT(
       );
     }
 
+    // Update fields
+    const updates = [
+      'firstName', 'lastName', 'email', 'phoneNumber',
+      'university', 'campus', 'department', 'graduationYear', 
+      'currentLocation', 'status'
+    ];
+    
+    const updatedData: any = {};
+    let hasUpdates = false;
+    
+    updates.forEach(field => {
+      if (body[field] !== undefined && body[field] !== null) {
+        updatedData[field] = body[field];
+        hasUpdates = true;
+      }
+    });
+
+    if (!hasUpdates) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    // If email is being updated, check for duplicates
+    if (updatedData.email && updatedData.email !== registration.email) {
+      const existingEmail = await Registration.findOne({ 
+        email: updatedData.email,
+        _id: { $ne: id }
+      });
+      if (existingEmail) {
+        return NextResponse.json(
+          { error: 'Email already registered' },
+          { status: 409 }
+        );
+      }
+    }
+
+    // If phone is being updated, check for duplicates
+    if (updatedData.phoneNumber && updatedData.phoneNumber !== registration.phoneNumber) {
+      const existingPhone = await Registration.findOne({
+        phoneNumber: updatedData.phoneNumber,
+        _id: { $ne: id }
+      });
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: 'Phone number already registered' },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Update registration
+    const updatedRegistration = await Registration.findByIdAndUpdate(
+      id,
+      { $set: updatedData },
+      { new: true, runValidators: true }
+    );
+
     return NextResponse.json({
       success: true,
       message: 'Registration updated successfully',
-      data: registration,
+      data: updatedRegistration,
     });
   } catch (error: any) {
     console.error('Error updating registration:', error);
@@ -137,41 +156,35 @@ export async function PUT(
   }
 }
 
-// DELETE /api/registrations/[id] - Delete registration (protected)
+// DELETE /api/registrations/[id] - Delete registration (admin only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
+    // Verify admin access (only admins can delete)
+    const authResult = await verifyAdmin(request);
     if (!authResult.isAuthenticated) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { id } = await params;
-
-    // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid registration ID' },
-        { status: 400 }
+        { error: authResult.error || 'Unauthorized. Admin access required.' },
+        { status: 403 }
       );
     }
 
     await dbConnect();
 
-    const registration = await Registration.findByIdAndDelete(id);
+    // Await params before accessing
+    const { id } = await params;
 
+    const registration = await Registration.findById(id);
     if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
         { status: 404 }
       );
     }
+
+    await Registration.findByIdAndDelete(id);
 
     return NextResponse.json({
       success: true,
@@ -186,49 +199,28 @@ export async function DELETE(
   }
 }
 
-// PATCH /api/registrations/[id]/status - Update registration status (protected)
+// PATCH /api/registrations/[id] - Partial update (admin only)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Same as PUT but with partial updates
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
+    const authResult = await verifyAdmin(request);
     if (!authResult.isAuthenticated) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: authResult.error || 'Unauthorized. Admin access required.' },
+        { status: 403 }
       );
     }
 
-    const { id } = await params;
     const body = await request.json();
-    const { status } = body;
-
-    // Validate status
-    if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status. Must be pending, approved, or rejected' },
-        { status: 400 }
-      );
-    }
-
-    // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { error: 'Invalid registration ID' },
-        { status: 400 }
-      );
-    }
-
     await dbConnect();
 
-    const registration = await Registration.findByIdAndUpdate(
-      id,
-      { status, updatedAt: new Date() },
-      { new: true }
-    );
+    // Await params before accessing
+    const { id } = await params;
 
+    const registration = await Registration.findById(id);
     if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
@@ -236,13 +228,69 @@ export async function PATCH(
       );
     }
 
+    // Only update fields that are provided
+    const updates = [
+      'firstName', 'lastName', 'email', 'phoneNumber',
+      'university', 'campus', 'department', 'graduationYear', 
+      'currentLocation', 'status', 'registeredAt'
+    ];
+    
+    const updatedData: any = {};
+    
+    updates.forEach(field => {
+      if (body[field] !== undefined) {
+        updatedData[field] = body[field];
+      }
+    });
+
+    if (Object.keys(updatedData).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    // Check for duplicate email if updated
+    if (updatedData.email && updatedData.email !== registration.email) {
+      const existingEmail = await Registration.findOne({
+        email: updatedData.email,
+        _id: { $ne: id }
+      });
+      if (existingEmail) {
+        return NextResponse.json(
+          { error: 'Email already registered' },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Check for duplicate phone if updated
+    if (updatedData.phoneNumber && updatedData.phoneNumber !== registration.phoneNumber) {
+      const existingPhone = await Registration.findOne({
+        phoneNumber: updatedData.phoneNumber,
+        _id: { $ne: id }
+      });
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: 'Phone number already registered' },
+          { status: 409 }
+        );
+      }
+    }
+
+    const updatedRegistration = await Registration.findByIdAndUpdate(
+      id,
+      { $set: updatedData },
+      { new: true, runValidators: true }
+    );
+
     return NextResponse.json({
       success: true,
-      message: `Registration ${status}`,
-      data: registration,
+      message: 'Registration updated successfully',
+      data: updatedRegistration,
     });
-  } catch (error) {
-    console.error('Error updating registration status:', error);
+  } catch (error: any) {
+    console.error('Error updating registration:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

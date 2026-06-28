@@ -1,5 +1,5 @@
-// app/layout.tsx (updated with favicon)
-import type { Metadata } from "next";
+// app/layout.tsx
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
@@ -17,6 +17,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
 });
+
+// Move viewport to separate export
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: {
@@ -49,12 +57,6 @@ export const metadata: Metadata = {
     title: "EvaSUE - Kingdom Impact Alumni Network",
     description: "Join our global alumni network for Kingdom impact. Connect, grow, and serve beyond campus life.",
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-  },
-  // Add favicon icons here - using the same path as your other project
   icons: {
     icon: '/logo/logo.svg',
     apple: '/logo/logo.svg',
@@ -72,7 +74,6 @@ export default function RootLayout({
         <QueryProvider>
           <ToastProvider />
           <AuthInitializer />
-          
           <main className="flex-1">
             {children}
           </main>

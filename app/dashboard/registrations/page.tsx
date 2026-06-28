@@ -1,4 +1,4 @@
-// app/dashboard/registrations/page.tsx (updated with campus and department)
+// app/dashboard/registrations/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,16 +24,18 @@ import {
   CheckCircle,
   Loader2,
   School,
-  BookOpen
+  BookOpen,
+  Shield,
+  AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 import { useRegistrations } from '@/hooks/useRegistrations';
-import { useRegistrationStore } from '@/store/registration.store';
+import { useAuthStore } from '@/store/auth.store';
 import { format } from 'date-fns';
-import { Registration } from '@/lib/types/api';
+import { Registration } from '@/lib/types/api'; // Use Registration from types
 import { allInstitutions, getCampusesByUniversity } from '@/data/campus';
 import toast from 'react-hot-toast';
 
@@ -42,6 +44,10 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
 export default function RegistrationsPage() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+  
+  // State
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
@@ -52,8 +58,6 @@ export default function RegistrationsPage() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Registration>>({});
   const [availableCampuses, setAvailableCampuses] = useState<Array<{id: string, name: string}>>([]);
-  
-  // Add manual form state
   const [addFormData, setAddFormData] = useState({
     firstName: '',
     lastName: '',
@@ -69,18 +73,24 @@ export default function RegistrationsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   
+  // Hooks
   const { 
     useGetRegistrations, 
     deleteRegistration, 
     updateRegistration, 
     submitRegistration,
-    exportRegistrations
+    exportRegistrations,
+    stats,
+    registrations,
+    isLoading,
+    isFetching,
+    totalPages,
+    pagination,
+    error
   } = useRegistrations();
   
-  const { registrations, isLoading, totalPages } = useRegistrationStore();
-  
   // Fetch registrations
-  const { refetch, isFetching } = useGetRegistrations(searchTerm, currentPage);
+  const { refetch } = useGetRegistrations(searchTerm, currentPage);
 
   // Update campuses when university changes in edit form
   useEffect(() => {
@@ -95,27 +105,17 @@ export default function RegistrationsPage() {
     }
   }, [editFormData.university]);
 
-  // Calculate stats safely
-  const registrationsArray = (registrations as Registration[]) || [];
-  
-  const stats = {
-    total: registrationsArray.length,
-    universities: [...new Set(registrationsArray.map(r => r?.university).filter(Boolean))].length,
-    thisMonth: registrationsArray.filter(r => {
-      if (!r?.registeredAt) return false;
-      const regDate = new Date(r.registeredAt);
-      const now = new Date();
-      return regDate.getMonth() === now.getMonth() && regDate.getFullYear() === now.getFullYear();
-    }).length,
-    countries: [...new Set(registrationsArray.map(r => r?.currentLocation?.split(',')[1]?.trim() || 'Ethiopia').filter(Boolean))].length,
-  };
-
+  // Handlers
   const handleViewDetails = (registration: Registration) => {
     setSelectedRegistration(registration);
     setIsViewModalOpen(true);
   };
 
   const handleEdit = (registration: Registration) => {
+    if (!isAdmin) {
+      toast.error('Only administrators can edit registrations');
+      return;
+    }
     setSelectedRegistration(registration);
     setEditFormData({
       firstName: registration.firstName,
@@ -154,6 +154,11 @@ export default function RegistrationsPage() {
   const handleDelete = async () => {
     if (!selectedRegistration) return;
     
+    if (!isAdmin) {
+      toast.error('Only administrators can delete registrations');
+      return;
+    }
+    
     try {
       const result = await deleteRegistration.mutateAsync(selectedRegistration._id);
       if (result.success) {
@@ -177,6 +182,10 @@ export default function RegistrationsPage() {
   };
 
   const handleOpenAddModal = () => {
+    if (!isAdmin) {
+      toast.error('Only administrators can add registrations');
+      return;
+    }
     setAddFormData({
       firstName: '',
       lastName: '',
@@ -254,6 +263,7 @@ export default function RegistrationsPage() {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   };
 
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchTerm !== undefined) {
@@ -265,20 +275,55 @@ export default function RegistrationsPage() {
 
   const loading = isLoading || isFetching;
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">Error Loading Data</h3>
+          <p className="text-slate-600">{error}</p>
+          <Button 
+            variant="primary" 
+            className="mt-4"
+            onClick={() => refetch()}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Role Badge */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Registrations</h1>
-          <p className="text-slate-600 mt-1">View and manage alumni registration records</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Registrations</h1>
+            {isAdmin ? (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                <Shield className="w-3 h-3" />
+                Admin Access
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                <Eye className="w-3 h-3" />
+                View Only
+              </span>
+            )}
+          </div>
+          <p className="text-slate-600 mt-1">
+            {isAdmin ? 'Manage and view all alumni registration records' : 'View alumni registration records'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
             variant="outline" 
             className="gap-2"
             onClick={() => setIsExportModalOpen(true)}
-            disabled={exportRegistrations.isPending || registrationsArray.length === 0}
+            disabled={exportRegistrations.isPending || registrations.length === 0}
           >
             {exportRegistrations.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -287,20 +332,22 @@ export default function RegistrationsPage() {
             )}
             Export
           </Button>
-          <Button variant="primary" className="gap-2" onClick={handleOpenAddModal}>
-            <UserPlus className="w-4 h-4" />
-            Add Manual
-          </Button>
+          {isAdmin && (
+            <Button variant="primary" className="gap-2" onClick={handleOpenAddModal}>
+              <UserPlus className="w-4 h-4" />
+              Add Manual
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Using stats from the API */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600">Total Registrations</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+              <p className="text-2xl font-bold text-slate-900">{stats.total.toLocaleString()}</p>
             </div>
             <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-sky-600" />
@@ -312,7 +359,7 @@ export default function RegistrationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600">Partner Universities</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.universities}</p>
+              <p className="text-2xl font-bold text-slate-900">{stats.universities.toLocaleString()}</p>
             </div>
             <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-emerald-600" />
@@ -324,7 +371,7 @@ export default function RegistrationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600">This Month</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.thisMonth}</p>
+              <p className="text-2xl font-bold text-slate-900">{stats.thisMonth.toLocaleString()}</p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -336,7 +383,7 @@ export default function RegistrationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-600">Countries</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.countries}</p>
+              <p className="text-2xl font-bold text-slate-900">{stats.countries.toLocaleString()}</p>
             </div>
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <Globe className="w-5 h-5 text-purple-600" />
@@ -387,22 +434,30 @@ export default function RegistrationsPage() {
               <TableRow>
                 <td colSpan={6} className="px-6 py-12 text-center">
                   <div className="flex items-center justify-center">
-                    <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+                    <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
                     <span className="ml-3 text-slate-600">Loading registrations...</span>
                   </div>
-                 </td>
+                </td>
               </TableRow>
-            ) : registrationsArray.length === 0 ? (
+            ) : registrations.length === 0 ? (
               <TableRow>
-                <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                  No registrations found
-                 </td>
+                <td colSpan={6} className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Users className="w-12 h-12 text-slate-300" />
+                    <p className="text-slate-500">No registrations found</p>
+                    {searchTerm && (
+                      <p className="text-sm text-slate-400">
+                        Try adjusting your search terms
+                      </p>
+                    )}
+                  </div>
+                </td>
               </TableRow>
             ) : (
               <AnimatePresence mode="wait">
-                {registrationsArray.map((reg, index) => (
+                {registrations.map((reg, index) => (
                   <motion.tr
-                    key={reg._id}
+                    key={reg._id || `reg-${index}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
@@ -420,7 +475,7 @@ export default function RegistrationsPage() {
                           <p className="font-medium text-slate-900">
                             {reg.firstName} {reg.lastName}
                           </p>
-                          <p className="text-xs text-slate-500">ID: {reg._id?.slice(-8)}</p>
+                          <p className="text-xs text-slate-500">ID: {reg._id?.slice(-8) || 'N/A'}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -475,23 +530,27 @@ export default function RegistrationsPage() {
                         >
                           <Eye className="w-4 h-4 text-slate-600" />
                         </button>
-                        <button
-                          onClick={() => handleEdit(reg)}
-                          className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4 text-slate-600" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedRegistration(reg);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => handleEdit(reg)}
+                              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4 text-slate-600" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedRegistration(reg);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </motion.tr>
@@ -503,9 +562,10 @@ export default function RegistrationsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && !loading && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-slate-600">
-              Page {currentPage} of {totalPages}
+              Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} records
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -554,45 +614,28 @@ export default function RegistrationsPage() {
         )}
       </Card>
 
-      {/* Export Confirmation Modal */}
-      <Modal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        title="Export Data"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Download className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Export Alumni Data</h3>
-            <p className="text-slate-600">
-              You are about to export {registrationsArray.length} alumni records to CSV format.
-            </p>
-          </div>
-          
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs text-yellow-800">
-              ⚠️ The CSV file will contain all registration data including personal information.
-              Please handle this data responsibly.
-            </p>
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="primary" 
-              onClick={handleExport}
-              isLoading={exportRegistrations.isPending}
-            >
-              {exportRegistrations.isPending ? 'Exporting...' : 'Confirm Export'}
-            </Button>
-          </div>
+      {/* Footer with User Info */}
+      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 border-t border-slate-200 pt-4 gap-2">
+        <div>
+          Logged in as: <span className="font-medium text-slate-600">{user?.email}</span>
         </div>
-      </Modal>
+        <div className="flex items-center gap-3">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
+            isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+          }`}>
+            {isAdmin ? <Shield className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {isAdmin ? 'Admin' : 'User'}
+          </span>
+          <span>•</span>
+          <span>{pagination.total} total records</span>
+          <span>•</span>
+          <span>{stats.total} alumni</span>
+          <span>•</span>
+          <span>{stats.universities} universities</span>
+        </div>
+      </div>
+
+      {/* MODALS */}
 
       {/* View Details Modal */}
       <Modal
@@ -613,7 +656,7 @@ export default function RegistrationsPage() {
                 <h3 className="text-xl font-bold text-slate-900">
                   {selectedRegistration.firstName} {selectedRegistration.lastName}
                 </h3>
-                <p className="text-slate-600">ID: {selectedRegistration._id}</p>
+                <p className="text-slate-600">ID: {selectedRegistration._id || 'N/A'}</p>
               </div>
             </div>
 
@@ -688,412 +731,458 @@ export default function RegistrationsPage() {
         )}
       </Modal>
 
-      {/* Edit Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Registration"
-        size="lg"
-      >
-        <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+      {/* Edit Modal - Admin Only */}
+      {isAdmin && (
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          title="Edit Registration"
+          size="lg"
+        >
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">First Name *</label>
+                <input
+                  type="text"
+                  value={editFormData.firstName || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Last Name *</label>
+                <input
+                  type="text"
+                  value={editFormData.lastName || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={editFormData.email || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number *</label>
+                <input
+                  type="tel"
+                  value={editFormData.phoneNumber || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">University *</label>
+                <select
+                  value={editFormData.university || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, university: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                >
+                  <option value="">Select university</option>
+                  {allInstitutions.map((inst) => (
+                    <option key={inst.id} value={inst.name}>
+                      {inst.name} {inst.type === 'private-college' ? '(Private)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Campus *</label>
+                <select
+                  value={editFormData.campus || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, campus: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                  disabled={!editFormData.university}
+                >
+                  <option value="">Select campus</option>
+                  {availableCampuses.map((campus) => (
+                    <option key={campus.id} value={campus.name}>
+                      {campus.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
+                <input
+                  type="text"
+                  value={editFormData.department || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                  placeholder="e.g., Computer Science"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Graduation Year *</label>
+                <select
+                  value={editFormData.graduationYear || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, graduationYear: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                >
+                  <option value="">Select year</option>
+                  {years.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">First Name *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Current Location *</label>
               <input
                 type="text"
-                value={editFormData.firstName || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                value={editFormData.currentLocation || ''}
+                onChange={(e) => setEditFormData({ ...editFormData, currentLocation: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                 required
+                placeholder="City, Country"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Last Name *</label>
-              <input
-                type="text"
-                value={editFormData.lastName || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-              />
+            
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" isLoading={updateRegistration.isPending}>
+                Save Changes
+              </Button>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
-              <input
-                type="email"
-                value={editFormData.email || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number *</label>
-              <input
-                type="tel"
-                value={editFormData.phoneNumber || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-              />
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">University *</label>
-              <select
-                value={editFormData.university || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, university: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-              >
-                <option value="">Select university</option>
-                {allInstitutions.map((inst) => (
-                  <option key={inst.id} value={inst.name}>
-                    {inst.name} {inst.type === 'private-college' ? '(Private)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Campus *</label>
-              <select
-                value={editFormData.campus || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, campus: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-                disabled={!editFormData.university}
-              >
-                <option value="">Select campus</option>
-                {availableCampuses.map((campus) => (
-                  <option key={campus.id} value={campus.name}>
-                    {campus.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
-              <input
-                type="text"
-                value={editFormData.department || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-                placeholder="e.g., Computer Science"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Graduation Year *</label>
-              <select
-                value={editFormData.graduationYear || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, graduationYear: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-              >
-                <option value="">Select year</option>
-                {years.map((year) => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Current Location *</label>
-            <input
-              type="text"
-              value={editFormData.currentLocation || ''}
-              onChange={(e) => setEditFormData({ ...editFormData, currentLocation: e.target.value })}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              required
-              placeholder="City, Country"
-            />
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" isLoading={updateRegistration.isPending}>
-              Save Changes
-            </Button>
-          </div>
-        </form>
-      </Modal>
+          </form>
+        </Modal>
+      )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal - Admin Only */}
+      {isAdmin && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title="Delete Registration"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-slate-600">
+              Are you sure you want to delete the registration for{' '}
+              <span className="font-semibold text-slate-900">
+                {selectedRegistration?.firstName} {selectedRegistration?.lastName}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={handleDelete} isLoading={deleteRegistration.isPending}>
+                Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Add Manual Registration Modal - Admin Only */}
+      {isAdmin && (
+        <Modal
+          isOpen={isAddModalOpen}
+          onClose={() => !isSubmitting && setIsAddModalOpen(false)}
+          title="Add Manual Registration"
+          size="lg"
+        >
+          <form onSubmit={handleSubmitManualRegistration} className="space-y-5">
+            {submitSuccess ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Registration Added Successfully!</h3>
+                <p className="text-slate-600">The alumni registration has been added to the system.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={addFormData.firstName}
+                      onChange={handleAddInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                        addFormErrors.firstName ? 'border-red-500' : 'border-slate-200'
+                      }`}
+                      placeholder="Enter first name"
+                    />
+                    {addFormErrors.firstName && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.firstName}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={addFormData.lastName}
+                      onChange={handleAddInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                        addFormErrors.lastName ? 'border-red-500' : 'border-slate-200'
+                      }`}
+                      placeholder="Enter last name"
+                    />
+                    {addFormErrors.lastName && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.lastName}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Email Address *
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="email"
+                        name="email"
+                        value={addFormData.email}
+                        onChange={handleAddInputChange}
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                          addFormErrors.email ? 'border-red-500' : 'border-slate-200'
+                        }`}
+                        placeholder="john@example.com"
+                      />
+                    </div>
+                    {addFormErrors.email && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.email}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Phone Number *
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="tel"
+                        name="phoneNumber"
+                        value={addFormData.phoneNumber}
+                        onChange={handleAddInputChange}
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                          addFormErrors.phoneNumber ? 'border-red-500' : 'border-slate-200'
+                        }`}
+                        placeholder="+251 XXX XXX XXX"
+                      />
+                    </div>
+                    {addFormErrors.phoneNumber && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.phoneNumber}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      University *
+                    </label>
+                    <select
+                      name="university"
+                      value={addFormData.university}
+                      onChange={handleAddInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                        addFormErrors.university ? 'border-red-500' : 'border-slate-200'
+                      }`}
+                    >
+                      <option value="">Select university/college</option>
+                      {allInstitutions.map((inst) => (
+                        <option key={inst.id} value={inst.name}>
+                          {inst.name} {inst.type === 'private-college' ? '(Private College)' : '(University)'}
+                        </option>
+                      ))}
+                    </select>
+                    {addFormErrors.university && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.university}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Campus *
+                    </label>
+                    <input
+                      type="text"
+                      name="campus"
+                      value={addFormData.campus}
+                      onChange={handleAddInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                        addFormErrors.campus ? 'border-red-500' : 'border-slate-200'
+                      }`}
+                      placeholder="e.g., Main Campus, 6 Kilo Campus"
+                    />
+                    {addFormErrors.campus && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.campus}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Department *
+                    </label>
+                    <input
+                      type="text"
+                      name="department"
+                      value={addFormData.department}
+                      onChange={handleAddInputChange}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                        addFormErrors.department ? 'border-red-500' : 'border-slate-200'
+                      }`}
+                      placeholder="e.g., Computer Science, Business"
+                    />
+                    {addFormErrors.department && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.department}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Graduation Year *
+                    </label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <select
+                        name="graduationYear"
+                        value={addFormData.graduationYear}
+                        onChange={handleAddInputChange}
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 appearance-none cursor-pointer ${
+                          addFormErrors.graduationYear ? 'border-red-500' : 'border-slate-200'
+                        }`}
+                      >
+                        <option value="">Select year</option>
+                        {years.map((year) => (
+                          <option key={year} value={year}>{year}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {addFormErrors.graduationYear && (
+                      <p className="mt-1 text-xs text-red-600">{addFormErrors.graduationYear}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Current Location *
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      name="currentLocation"
+                      value={addFormData.currentLocation}
+                      onChange={handleAddInputChange}
+                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                        addFormErrors.currentLocation ? 'border-red-500' : 'border-slate-200'
+                      }`}
+                      placeholder="City, Country"
+                    />
+                  </div>
+                  {addFormErrors.currentLocation && (
+                    <p className="mt-1 text-xs text-red-600">{addFormErrors.currentLocation}</p>
+                  )}
+                </div>
+
+                {addFormErrors.general && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">{addFormErrors.general}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsAddModalOpen(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    variant="primary"
+                    isLoading={isSubmitting}
+                  >
+                    {isSubmitting ? 'Adding...' : 'Add Registration'}
+                  </Button>
+                </div>
+              </>
+            )}
+          </form>
+        </Modal>
+      )}
+
+      {/* Export Modal */}
       <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete Registration"
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Export Data"
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-slate-600">
-            Are you sure you want to delete the registration for{' '}
-            <span className="font-semibold text-slate-900">
-              {selectedRegistration?.firstName} {selectedRegistration?.lastName}
-            </span>
-            ? This action cannot be undone.
-          </p>
+          <div className="text-center">
+            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Download className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Export Alumni Data</h3>
+            <p className="text-slate-600">
+              You are about to export {pagination.total} alumni records to CSV format.
+            </p>
+          </div>
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-xs text-yellow-800">
+              ⚠️ The CSV file will contain all registration data including personal information.
+              Please handle this data responsibly.
+            </p>
+          </div>
+          
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={handleDelete} isLoading={deleteRegistration.isPending}>
-              Delete
+            <Button 
+              variant="primary" 
+              onClick={handleExport}
+              isLoading={exportRegistrations.isPending}
+            >
+              {exportRegistrations.isPending ? 'Exporting...' : 'Confirm Export'}
             </Button>
           </div>
         </div>
-      </Modal>
-
-      {/* Add Manual Registration Modal */}
-      <Modal
-        isOpen={isAddModalOpen}
-        onClose={() => !isSubmitting && setIsAddModalOpen(false)}
-        title="Add Manual Registration"
-        size="lg"
-      >
-        <form onSubmit={handleSubmitManualRegistration} className="space-y-5">
-          {submitSuccess ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Registration Added Successfully!</h3>
-              <p className="text-slate-600">The alumni registration has been added to the system.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={addFormData.firstName}
-                    onChange={handleAddInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      addFormErrors.firstName ? 'border-red-500' : 'border-slate-200'
-                    }`}
-                    placeholder="Enter first name"
-                  />
-                  {addFormErrors.firstName && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.firstName}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={addFormData.lastName}
-                    onChange={handleAddInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      addFormErrors.lastName ? 'border-red-500' : 'border-slate-200'
-                    }`}
-                    placeholder="Enter last name"
-                  />
-                  {addFormErrors.lastName && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.lastName}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Email Address *
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="email"
-                      name="email"
-                      value={addFormData.email}
-                      onChange={handleAddInputChange}
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.email ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  {addFormErrors.email && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.email}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Phone Number *
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="tel"
-                      name="phoneNumber"
-                      value={addFormData.phoneNumber}
-                      onChange={handleAddInputChange}
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.phoneNumber ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="+251 XXX XXX XXX"
-                    />
-                  </div>
-                  {addFormErrors.phoneNumber && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.phoneNumber}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    University *
-                  </label>
-                  <select
-                    name="university"
-                    value={addFormData.university}
-                    onChange={handleAddInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      addFormErrors.university ? 'border-red-500' : 'border-slate-200'
-                    }`}
-                  >
-                    <option value="">Select university/college</option>
-                    {allInstitutions.map((inst) => (
-                      <option key={inst.id} value={inst.name}>
-                        {inst.name} {inst.type === 'private-college' ? '(Private College)' : '(University)'}
-                      </option>
-                    ))}
-                  </select>
-                  {addFormErrors.university && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.university}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Campus *
-                  </label>
-                  <input
-                    type="text"
-                    name="campus"
-                    value={addFormData.campus}
-                    onChange={handleAddInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      addFormErrors.campus ? 'border-red-500' : 'border-slate-200'
-                    }`}
-                    placeholder="e.g., Main Campus, 6 Kilo Campus"
-                  />
-                  {addFormErrors.campus && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.campus}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Department *
-                  </label>
-                  <input
-                    type="text"
-                    name="department"
-                    value={addFormData.department}
-                    onChange={handleAddInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      addFormErrors.department ? 'border-red-500' : 'border-slate-200'
-                    }`}
-                    placeholder="e.g., Computer Science, Business"
-                  />
-                  {addFormErrors.department && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.department}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Graduation Year *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <select
-                      name="graduationYear"
-                      value={addFormData.graduationYear}
-                      onChange={handleAddInputChange}
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 appearance-none cursor-pointer ${
-                        addFormErrors.graduationYear ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                    >
-                      <option value="">Select year</option>
-                      {years.map((year) => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {addFormErrors.graduationYear && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.graduationYear}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Current Location *
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    name="currentLocation"
-                    value={addFormData.currentLocation}
-                    onChange={handleAddInputChange}
-                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                      addFormErrors.currentLocation ? 'border-red-500' : 'border-slate-200'
-                    }`}
-                    placeholder="City, Country"
-                  />
-                </div>
-                {addFormErrors.currentLocation && (
-                  <p className="mt-1 text-xs text-red-600">{addFormErrors.currentLocation}</p>
-                )}
-              </div>
-
-              {addFormErrors.general && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{addFormErrors.general}</p>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddModalOpen(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  variant="primary"
-                  isLoading={isSubmitting}
-                >
-                  {isSubmitting ? 'Adding...' : 'Add Registration'}
-                </Button>
-              </div>
-            </>
-          )}
-        </form>
       </Modal>
     </div>
   );
