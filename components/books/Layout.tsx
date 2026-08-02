@@ -2,6 +2,7 @@ import AboutBook from "./AboutBook";
 import Footer from "./Footer";
 import Header from "./Header";
 import Hero from "./Hero";
+import AboutAuthor from "./AboutAuthor";
 
 export default function Layout() {
   return (
@@ -11,6 +12,7 @@ export default function Layout() {
       <main className="flex-1">
         <Hero />
         <AboutBook />
+        <AboutAuthor />
       </main>
 
       <Footer />
