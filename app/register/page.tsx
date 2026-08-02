@@ -1,457 +1,1240 @@
-// app/register/page.tsx
+// // app/register/page.tsx
+// 'use client';
+
+// import { useState, useEffect } from 'react';
+// import { useRouter } from 'next/navigation';
+// import { motion } from 'framer-motion';
+// import { 
+//   Mail, 
+//   Lock, 
+//   User, 
+//   UserPlus, 
+//   GraduationCap, 
+//   Eye, 
+//   EyeOff,
+//   CheckCircle,
+//   AlertCircle,
+//   ArrowRight,
+//   Shield,
+//   Building2
+// } from 'lucide-react';
+// import { Card } from '@/components/ui/Card';
+// import { Button } from '@/components/ui/Button';
+// import { Input } from '@/components/ui/Input';
+// import { useAuthStore } from '@/store/auth.store';
+// import toast from 'react-hot-toast';
+
+// export default function RegisterPage() {
+//   const router = useRouter();
+//   const { register, isLoading, isAuthenticated } = useAuthStore();
+  
+//   const [showPassword, setShowPassword] = useState(false);
+//   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+//   const [isSubmitting, setIsSubmitting] = useState(false);
+//   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+//   const [formData, setFormData] = useState({
+//     firstName: '',
+//     lastName: '',
+//     email: '',
+//     password: '',
+//     confirmPassword: '',
+//     role: 'user' as 'user' | 'admin',
+//   });
+//   const [errors, setErrors] = useState<{
+//     firstName?: string;
+//     lastName?: string;
+//     email?: string;
+//     password?: string;
+//     confirmPassword?: string;
+//     general?: string;
+//   }>({});
+
+//   // Redirect if already authenticated
+//   useEffect(() => {
+//     if (isAuthenticated) {
+//       router.replace('/dashboard');
+//     }
+//   }, [isAuthenticated, router]);
+
+//   // Redirect to login after successful registration
+//   useEffect(() => {
+//     if (registrationSuccess) {
+//       const timer = setTimeout(() => {
+//         router.push('/login');
+//       }, 3000);
+//       return () => clearTimeout(timer);
+//     }
+//   }, [registrationSuccess, router]);
+
+//   const validateForm = () => {
+//     const newErrors: typeof errors = {};
+
+//     if (!formData.firstName.trim()) {
+//       newErrors.firstName = 'First name is required';
+//     } else if (formData.firstName.length < 2) {
+//       newErrors.firstName = 'First name must be at least 2 characters';
+//     }
+
+//     if (!formData.lastName.trim()) {
+//       newErrors.lastName = 'Last name is required';
+//     } else if (formData.lastName.length < 2) {
+//       newErrors.lastName = 'Last name must be at least 2 characters';
+//     }
+
+//     if (!formData.email.trim()) {
+//       newErrors.email = 'Email is required';
+//     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+//       newErrors.email = 'Please enter a valid email address';
+//     }
+
+//     if (!formData.password) {
+//       newErrors.password = 'Password is required';
+//     } else if (formData.password.length < 6) {
+//       newErrors.password = 'Password must be at least 6 characters';
+//     }
+
+//     if (!formData.confirmPassword) {
+//       newErrors.confirmPassword = 'Please confirm your password';
+//     } else if (formData.password !== formData.confirmPassword) {
+//       newErrors.confirmPassword = 'Passwords do not match';
+//     }
+
+//     setErrors(newErrors);
+//     return Object.keys(newErrors).length === 0;
+//   };
+
+//   const handleSubmit = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     if (!validateForm()) return;
+
+//     setIsSubmitting(true);
+//     setErrors({});
+
+//     try {
+//       const result = await register({
+//         email: formData.email,
+//         password: formData.password,
+//         firstName: formData.firstName,
+//         lastName: formData.lastName,
+//         role: formData.role,
+//       });
+
+//       if (result.success) {
+//         toast.success('Account created successfully!');
+//         setRegistrationSuccess(true);
+//       } else {
+//         setErrors({ general: result.message || 'Registration failed. Please try again.' });
+//         toast.error(result.message || 'Registration failed');
+//       }
+//     } catch (error) {
+//       console.error('Registration error:', error);
+//       setErrors({ general: 'An error occurred. Please try again.' });
+//       toast.error('Registration failed. Please try again.');
+//     } finally {
+//       setIsSubmitting(false);
+//     }
+//   };
+
+//   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+//     const { name, value } = e.target;
+//     setFormData(prev => ({ ...prev, [name]: value }));
+//     // Clear error when user starts typing
+//     if (errors[name as keyof typeof errors]) {
+//       setErrors(prev => ({ ...prev, [name]: undefined }));
+//     }
+//   };
+
+//   // Show success state
+//   if (registrationSuccess) {
+//     return (
+//       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4">
+//         <motion.div
+//           initial={{ opacity: 0, scale: 0.9 }}
+//           animate={{ opacity: 1, scale: 1 }}
+//           className="w-full max-w-md"
+//         >
+//           <Card className="p-8 text-center">
+//             <motion.div
+//               initial={{ scale: 0 }}
+//               animate={{ scale: 1 }}
+//               transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+//               className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"
+//             >
+//               <CheckCircle className="w-10 h-10 text-emerald-600" />
+//             </motion.div>
+//             <h2 className="text-2xl font-bold text-slate-900 mb-2">Registration Successful!</h2>
+//             <p className="text-slate-600">
+//               Your account has been created successfully. You will be redirected to the login page shortly.
+//             </p>
+//             <div className="mt-6">
+//               <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+//                 <motion.div
+//                   initial={{ width: 0 }}
+//                   animate={{ width: '100%' }}
+//                   transition={{ duration: 3, ease: 'linear' }}
+//                   className="h-full bg-emerald-500 rounded-full"
+//                 />
+//               </div>
+//               <p className="text-xs text-slate-500 mt-2">Redirecting to login...</p>
+//             </div>
+//             <Button
+//               variant="outline"
+//               className="mt-6"
+//               onClick={() => router.push('/login')}
+//             >
+//               Go to Login <ArrowRight className="w-4 h-4 ml-2" />
+//             </Button>
+//           </Card>
+//         </motion.div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
+//       {/* Background Decor */}
+//       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+//         <motion.div
+//           animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+//           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+//           className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 rounded-full blur-[120px] mix-blend-multiply"
+//         />
+//         <motion.div
+//           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.4, 0.3] }}
+//           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+//           className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[140px] mix-blend-multiply"
+//         />
+//       </div>
+
+//       <motion.div
+//         initial={{ opacity: 0, y: 30 }}
+//         animate={{ opacity: 1, y: 0 }}
+//         transition={{ duration: 0.7, type: "spring", stiffness: 100 }}
+//         className="relative z-10 w-full max-w-md"
+//       >
+//         <Card className="p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/60 bg-white/70 backdrop-blur-2xl rounded-3xl">
+//           {/* Logo */}
+//           <motion.div
+//             initial={{ scale: 0 }}
+//             animate={{ scale: 1 }}
+//             transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+//             className="text-center mb-8"
+//           >
+//             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl mb-4 shadow-[0_0_20px_rgba(14,165,233,0.3)] ring-4 ring-white/50">
+//               <UserPlus className="w-8 h-8 text-white" />
+//             </div>
+//             <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
+//             <p className="text-slate-600 mt-2">Join the EvaSUE alumni community</p>
+//           </motion.div>
+
+//           {/* Registration Form */}
+//           <form onSubmit={handleSubmit} className="space-y-4">
+//             {/* Name Fields */}
+//             <div className="grid grid-cols-2 gap-4">
+//               <div>
+//                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+//                   First Name *
+//                 </label>
+//                 <div className="relative">
+//                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+//                   <input
+//                     type="text"
+//                     name="firstName"
+//                     value={formData.firstName}
+//                     onChange={handleInputChange}
+//                     className={`
+//                       w-full pl-10 pr-4 py-2 bg-white border rounded-lg
+//                       focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+//                       transition-all duration-200
+//                       ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
+//                     `}
+//                     placeholder="First name"
+//                     disabled={isSubmitting}
+//                   />
+//                 </div>
+//                 {errors.firstName && (
+//                   <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>
+//                 )}
+//               </div>
+//               <div>
+//                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+//                   Last Name *
+//                 </label>
+//                 <div className="relative">
+//                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+//                   <input
+//                     type="text"
+//                     name="lastName"
+//                     value={formData.lastName}
+//                     onChange={handleInputChange}
+//                     className={`
+//                       w-full pl-10 pr-4 py-2 bg-white border rounded-lg
+//                       focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+//                       transition-all duration-200
+//                       ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
+//                     `}
+//                     placeholder="Last name"
+//                     disabled={isSubmitting}
+//                   />
+//                 </div>
+//                 {errors.lastName && (
+//                   <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>
+//                 )}
+//               </div>
+//             </div>
+
+//             {/* Email */}
+//             <div>
+//               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+//                 Email Address *
+//               </label>
+//               <div className="relative">
+//                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+//                 <input
+//                   type="email"
+//                   name="email"
+//                   value={formData.email}
+//                   onChange={handleInputChange}
+//                   className={`
+//                     w-full pl-10 pr-4 py-2 bg-white border rounded-lg
+//                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+//                     transition-all duration-200
+//                     ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
+//                   `}
+//                   placeholder="you@example.com"
+//                   disabled={isSubmitting}
+//                 />
+//               </div>
+//               {errors.email && (
+//                 <p className="mt-1 text-xs text-red-600">{errors.email}</p>
+//               )}
+//             </div>
+
+//             {/* Password */}
+//             <div>
+//               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+//                 Password *
+//               </label>
+//               <div className="relative">
+//                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+//                 <input
+//                   type={showPassword ? 'text' : 'password'}
+//                   name="password"
+//                   value={formData.password}
+//                   onChange={handleInputChange}
+//                   className={`
+//                     w-full pl-10 pr-12 py-2 bg-white border rounded-lg
+//                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+//                     transition-all duration-200
+//                     ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
+//                   `}
+//                   placeholder="Min 6 characters"
+//                   disabled={isSubmitting}
+//                 />
+//                 <button
+//                   type="button"
+//                   onClick={() => setShowPassword(!showPassword)}
+//                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+//                 >
+//                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+//                 </button>
+//               </div>
+//               {errors.password && (
+//                 <p className="mt-1 text-xs text-red-600">{errors.password}</p>
+//               )}
+//             </div>
+
+//             {/* Confirm Password */}
+//             <div>
+//               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+//                 Confirm Password *
+//               </label>
+//               <div className="relative">
+//                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+//                 <input
+//                   type={showConfirmPassword ? 'text' : 'password'}
+//                   name="confirmPassword"
+//                   value={formData.confirmPassword}
+//                   onChange={handleInputChange}
+//                   className={`
+//                     w-full pl-10 pr-12 py-2 bg-white border rounded-lg
+//                     focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
+//                     transition-all duration-200
+//                     ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
+//                   `}
+//                   placeholder="Confirm your password"
+//                   disabled={isSubmitting}
+//                 />
+//                 <button
+//                   type="button"
+//                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+//                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+//                 >
+//                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+//                 </button>
+//               </div>
+//               {errors.confirmPassword && (
+//                 <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>
+//               )}
+//             </div>
+
+//             {/* Role Selection */}
+//             <div>
+//               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+//                 Account Type
+//               </label>
+//               <select
+//                 name="role"
+//                 value={formData.role}
+//                 onChange={handleInputChange}
+//                 className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200"
+//                 disabled={isSubmitting}
+//               >
+//                 <option value="user">Regular User</option>
+//                 <option value="admin">Administrator</option>
+//               </select>
+//               <p className="mt-1 text-xs text-slate-500 flex items-center gap-1">
+//                 {formData.role === 'admin' ? (
+//                   <>
+//                     <Shield className="w-3 h-3 text-purple-500" />
+//                     Admin accounts have full system access
+//                   </>
+//                 ) : (
+//                   <>
+//                     <User className="w-3 h-3 text-sky-500" />
+//                     Regular users can view and manage their own data
+//                   </>
+//                 )}
+//               </p>
+//             </div>
+
+//             {errors.general && (
+//               <motion.div
+//                 initial={{ opacity: 0, y: -10 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2"
+//               >
+//                 <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+//                 <p className="text-sm text-red-600">{errors.general}</p>
+//               </motion.div>
+//             )}
+
+//             <Button
+//               type="submit"
+//               variant="primary"
+//               fullWidth
+//               isLoading={isSubmitting || isLoading}
+//               className="mt-6"
+//             >
+//               <UserPlus className="w-4 h-4 mr-2" />
+//               {isSubmitting ? 'Creating Account...' : 'Create Account'}
+//             </Button>
+
+//             <p className="text-center text-sm text-slate-600 mt-4">
+//               Already have an account?{' '}
+//               <button
+//                 type="button"
+//                 onClick={() => router.push('/login')}
+//                 className="text-sky-600 hover:text-sky-700 font-medium hover:underline transition-colors"
+//               >
+//                 Sign in here
+//               </button>
+//             </p>
+
+//             <div className="relative my-4">
+//               <div className="absolute inset-0 flex items-center">
+//                 <div className="w-full border-t border-slate-200"></div>
+//               </div>
+//               <div className="relative flex justify-center text-xs">
+//                 <span className="px-2 bg-white/70 text-slate-500">Join the EvaSUE Community</span>
+//               </div>
+//             </div>
+//           </form>
+//         </Card>
+//       </motion.div>
+//     </div>
+//   );
+// }
+// components/landing/AlumniForm.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { useRef, useEffect, useState, useMemo } from "react";
+import { motion, useAnimation, useInView, Variants, useScroll, useTransform } from "framer-motion";
 import { 
-  Mail, 
-  Lock, 
   User, 
-  UserPlus, 
+  Mail, 
+  Calendar, 
   GraduationCap, 
-  Eye, 
-  EyeOff,
-  CheckCircle,
-  AlertCircle,
   ArrowRight,
-  Shield,
-  Building2
-} from 'lucide-react';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { useAuthStore } from '@/store/auth.store';
-import toast from 'react-hot-toast';
+  Users,
+  CheckCircle,
+  Phone,
+  MapPin,
+  Building,
+  Loader2,
+  School,
+  BookOpen,
+  ChevronDown,
+  Sparkles,
+  Target,
+  Heart,
+  Globe
+} from "lucide-react";
+import { useToast } from "@/hooks/useToast";
+import { useRegistrations } from "@/hooks/useRegistrations";
+import { 
+  getGovernmentUniversities, 
+  getPrivateCollegesList,
+  getCampusesByUniversity
+} from "@/data/campus";
+import Image from "next/image";
 
-export default function RegisterPage() {
-  const router = useRouter();
-  const { register, isLoading, isAuthenticated } = useAuthStore();
-  
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+// Generate deterministic particle positions without Math.random during render
+const generateParticlePositions = (count: number) => {
+  const positions = [];
+  for (let i = 0; i < count; i++) {
+    const seed = i * 0.618033988749895;
+    positions.push({
+      x: ((seed * 100) % 100),
+      y: ((seed * 137) % 100),
+      scale: 0.3 + ((seed * 0.5) % 0.5),
+      duration: 8 + ((seed * 12) % 12),
+      delay: (seed * 5) % 5,
+      moveX: ((seed * 50) % 100) - 50,
+      moveY: -80 - ((seed * 40) % 40),
+    });
+  }
+  return positions;
+};
+
+export default function AlumniForm() {
+  const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const controls = useAnimation();
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
+  const { showSuccess, showError, showLoading, dismiss } = useToast();
+  const { submitRegistration } = useRegistrations();
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Parallax effects matching hero
+  const { scrollY } = useScroll();
+  const yBackground = useTransform(scrollY, [0, 1000], [0, 150]);
+  const opacityBackground = useTransform(scrollY, [0, 500], [1, 0.4]);
+
+  // Generate particle positions once on mount
+  const particlePositions = useMemo(() => generateParticlePositions(25), []);
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'user' as 'user' | 'admin',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    university: "",
+    campus: "",
+    department: "",
+    graduationYear: "",
+    currentLocation: ""
   });
-  const [errors, setErrors] = useState<{
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    password?: string;
-    confirmPassword?: string;
-    general?: string;
-  }>({});
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthenticated, router]);
+  const [availableCampuses, setAvailableCampuses] = useState<Array<{id: string, name: string}>>([]);
+  const [institutionType, setInstitutionType] = useState<'government' | 'private' | ''>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Redirect to login after successful registration
+  // Get universities
+  const governmentUniversities = useMemo(() => getGovernmentUniversities(), []);
+  const privateColleges = useMemo(() => getPrivateCollegesList(), []);
+
+  // Update campuses when university changes
   useEffect(() => {
-    if (registrationSuccess) {
-      const timer = setTimeout(() => {
-        router.push('/login');
-      }, 3000);
-      return () => clearTimeout(timer);
+    if (formData.university) {
+      const selectedUniv = [...governmentUniversities, ...privateColleges].find(
+        inst => inst.name === formData.university
+      );
+      
+      if (selectedUniv && selectedUniv.type === 'university' && selectedUniv.campuses) {
+        setAvailableCampuses(selectedUniv.campuses);
+        if (!selectedUniv.campuses.find(c => c.name === formData.campus)) {
+          setFormData(prev => ({ ...prev, campus: "" }));
+        }
+      } else {
+        setAvailableCampuses([{ id: "main-campus", name: "Main Campus" }]);
+        setFormData(prev => ({ ...prev, campus: "Main Campus" }));
+      }
+    } else {
+      setAvailableCampuses([]);
+      setFormData(prev => ({ ...prev, campus: "" }));
     }
-  }, [registrationSuccess, router]);
+  }, [formData.university, governmentUniversities, privateColleges]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    
+    if (isInView && !isMobile) {
+      controls.start("visible");
+    } else if (isMobile) {
+      // On mobile, set visible immediately
+      controls.set("visible");
+    }
+    
+    return () => clearTimeout(timer);
+  }, [controls, isInView, isMobile]);
+
+  // Animation variants - reduced for mobile
+  const fadeLeft: Variants = {
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, x: -50 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: isMobile ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
+  const fadeRight: Variants = {
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, x: 50 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: { duration: isMobile ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
+  const fadeUp: Variants = {
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: isMobile ? 0 : 0.6 }
+    }
+  };
+
+  const staggerContainer: Variants = {
+    hidden: { opacity: 1 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: isMobile ? 0 : 0.1,
+        delayChildren: isMobile ? 0 : 0.2
+      }
+    }
+  };
+
+  // Validate phone number format
+  const validatePhoneNumber = (phone: string) => {
+    const ethiopianPattern = /^(\+251|0|09)?[0-9]{9}$/;
+    const internationalPattern = /^\+[1-9]\d{1,14}$/;
+    return ethiopianPattern.test(phone) || internationalPattern.test(phone);
+  };
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  };
 
   const validateForm = () => {
-    const newErrors: typeof errors = {};
-
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    } else if (formData.firstName.length < 2) {
-      newErrors.firstName = 'First name must be at least 2 characters';
-    }
-
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    } else if (formData.lastName.length < 2) {
-      newErrors.lastName = 'Last name must be at least 2 characters';
-    }
-
+    const errors: Record<string, string> = {};
+    if (!formData.firstName.trim()) errors.firstName = "First name is required";
+    if (!formData.lastName.trim()) errors.lastName = "Last name is required";
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      errors.email = "Email address is required";
+    } else if (!validateEmail(formData.email)) {
+      errors.email = "Please enter a valid email address";
     }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    if (!formData.phoneNumber.trim()) {
+      errors.phoneNumber = "Phone number is required";
+    } else if (!validatePhoneNumber(formData.phoneNumber)) {
+      errors.phoneNumber = "Please enter a valid phone number";
     }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!formData.university) errors.university = "Please select a university/college";
+    if (!formData.campus) errors.campus = "Please select a campus";
+    if (!formData.department.trim()) errors.department = "Department is required";
+    if (!formData.graduationYear) errors.graduationYear = "Graduation year is required";
+    if (!formData.currentLocation.trim()) errors.currentLocation = "Current location is required";
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      showError("Please fix the errors in the form");
+      return;
+    }
 
     setIsSubmitting(true);
-    setErrors({});
+    const loadingToast = showLoading("Submitting your registration...");
 
     try {
-      const result = await register({
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        role: formData.role,
-      });
-
+      const result = await submitRegistration.mutateAsync(formData);
+      
       if (result.success) {
-        toast.success('Account created successfully!');
-        setRegistrationSuccess(true);
-      } else {
-        setErrors({ general: result.message || 'Registration failed. Please try again.' });
-        toast.error(result.message || 'Registration failed');
+        dismiss(loadingToast);
+        showSuccess("Successfully joined the alumni network!");
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phoneNumber: "",
+          university: "",
+          campus: "",
+          department: "",
+          graduationYear: "",
+          currentLocation: ""
+        });
+        setFieldErrors({});
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      setErrors({ general: 'An error occurred. Please try again.' });
-      toast.error('Registration failed. Please try again.');
+    } catch (error: any) {
+      dismiss(loadingToast);
+      if (error.message?.includes("Email")) {
+        setFieldErrors(prev => ({ ...prev, email: error.message }));
+        showError("This email address is already registered.");
+      } else if (error.message?.includes("Phone")) {
+        setFieldErrors(prev => ({ ...prev, phoneNumber: error.message }));
+        showError("This phone number is already registered.");
+      } else {
+        showError(error.message || "Failed to submit registration.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  // Show success state
-  if (registrationSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md"
-        >
-          <Card className="p-8 text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
-              className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <CheckCircle className="w-10 h-10 text-emerald-600" />
-            </motion.div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Registration Successful!</h2>
-            <p className="text-slate-600">
-              Your account has been created successfully. You will be redirected to the login page shortly.
-            </p>
-            <div className="mt-6">
-              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: '100%' }}
-                  transition={{ duration: 3, ease: 'linear' }}
-                  className="h-full bg-emerald-500 rounded-full"
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-2">Redirecting to login...</p>
-            </div>
-            <Button
-              variant="outline"
-              className="mt-6"
-              onClick={() => router.push('/login')}
-            >
-              Go to Login <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-blue-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decor */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-sky-400/20 rounded-full blur-[120px] mix-blend-multiply"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.4, 0.3] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[140px] mix-blend-multiply"
-        />
-      </div>
-
+    <section id="alumni" className="relative py-24 sm:py-32 overflow-hidden bg-sky-900">
+      {/* Background Image with parallax - matching hero */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, type: "spring", stiffness: 100 }}
-        className="relative z-10 w-full max-w-md"
-      >
-        <Card className="p-8 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/60 bg-white/70 backdrop-blur-2xl rounded-3xl">
-          {/* Logo */}
+        className="absolute inset-0 w-[120%] h-[120%] -left-[10%] -top-[10%] bg-cover bg-center origin-center"
+        style={{
+          backgroundImage: `url('/image/5.webp')`,
+          y: yBackground,
+          opacity: opacityBackground
+        }}
+        initial={{ scale: 1.1, filter: "blur(10px)" }}
+        animate={{ scale: 1, filter: "blur(0px)" }}
+        transition={{ duration: 2.5, ease: "easeOut" }}
+      />
+
+      {/* Modern High-End Overlay Gradients - matching hero */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-sky-950/90 to-slate-950 opacity-100 z-0" />
+      
+      <motion.div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.3)_0%,transparent_60%)] z-0"
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.6, 0.9, 0.6]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      />
+      
+      <motion.div
+        className="absolute bottom-0 w-full h-[40%] bg-[radial-gradient(ellipse_at_bottom,rgba(56,189,248,0.15)_0%,transparent_70%)] z-0"
+        animate={{
+          scale: [1, 1.2, 1],
+        }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+      />
+
+      {/* Hero Particles - matching hero - hidden on mobile */}
+      {mounted && !isMobile && (
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          {particlePositions.map((pos, i) => (
+            <motion.div
+              key={i}
+              className="absolute bg-white rounded-full shadow-[0_0_10px_2px_rgba(255,255,255,0.3)]"
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                width: `${4 * pos.scale}px`,
+                height: `${4 * pos.scale}px`,
+              }}
+              animate={{
+                y: [0, pos.moveY],
+                x: [0, pos.moveX],
+                opacity: [0, 0.8, 0],
+                scale: [0, pos.scale, 0]
+              }}
+              transition={{
+                duration: pos.duration,
+                repeat: Infinity,
+                ease: "linear",
+                delay: pos.delay,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-12">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+          
+          {/* Left Side - Content with Logo & Info */}
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="text-center mb-8"
+            variants={staggerContainer}
+            initial="hidden"
+            animate={controls}
+            className="order-1"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl mb-4 shadow-[0_0_20px_rgba(14,165,233,0.3)] ring-4 ring-white/50">
-              <UserPlus className="w-8 h-8 text-white" />
+            <div className="space-y-6">
+              {/* Logo */}
+              <motion.div 
+  variants={fadeLeft}
+  className="flex justify-start"
+>
+  <div className="relative w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48">
+    <Image
+      src="/logo/logo.svg"
+      alt="EvaSUE Logo"
+      fill
+      className="object-contain drop-shadow-2xl"
+      priority
+    />
+  </div>
+</motion.div>
+
+              {/* Alumni Network Badge */}
+              <motion.div variants={fadeLeft} className="inline-flex items-center gap-2">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+                  <Users className="w-4 h-4 text-sky-400" />
+                  <span className="text-xs font-black tracking-wider text-sky-300 uppercase">Alumni Network</span>
+                </div>
+              </motion.div>
+
+              {/* Main Heading */}
+              <motion.h2 
+                variants={fadeLeft}
+                className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tighter"
+              >
+                <span className="text-white">Join Our{' '}</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-sky-300 to-blue-400">
+                  Global Alumni
+                </span>
+              </motion.h2>
+
+              {/* Description */}
+              <motion.p 
+                variants={fadeLeft}
+                className="text-base text-slate-300 leading-relaxed"
+              >
+                EvaSUE is a fellowship of students and graduates dedicated to following and witnessing to Jesus Christ as Lord and Savior.
+              </motion.p>
+              
+              <motion.p 
+                variants={fadeLeft}
+                className="text-base text-slate-300 leading-relaxed"
+              >
+                We are calling graduates and associates to invest in the next generation of student leaders. By mentoring, coaching, and walking alongside students, you can help shape the future of campus ministry in Ethiopia and beyond.
+              </motion.p>
+
+              
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
-            <p className="text-slate-600 mt-2">Join the EvaSUE alumni community</p>
           </motion.div>
 
-          {/* Registration Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  First Name *
+          {/* Right Side - Form Fields */}
+          <motion.div
+            ref={ref}
+            variants={staggerContainer}
+            initial="hidden"
+            animate={controls}
+            className="order-1"
+          >
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Name Row - First & Last */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div variants={fadeRight}>
+                  <label htmlFor="firstName" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    First Name *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.firstName 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                      placeholder="John"
+                    />
+                  </div>
+                  {fieldErrors.firstName && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.firstName}</p>
+                  )}
+                </motion.div>
+
+                <motion.div variants={fadeRight}>
+                  <label htmlFor="lastName" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Last Name *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.lastName 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                      placeholder="Doe"
+                    />
+                  </div>
+                  {fieldErrors.lastName && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.lastName}</p>
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Email & Phone Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div variants={fadeRight}>
+                  <label htmlFor="email" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.email 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                  {fieldErrors.email && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.email}</p>
+                  )}
+                </motion.div>
+
+                <motion.div variants={fadeRight}>
+                  <label htmlFor="phoneNumber" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Phone Number *
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="tel"
+                      id="phoneNumber"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.phoneNumber 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                      placeholder="+251 911 123 456"
+                    />
+                  </div>
+                  {fieldErrors.phoneNumber && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.phoneNumber}</p>
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Institution Type Selection */}
+              <motion.div variants={fadeRight}>
+                <label className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-3">
+                  Institution Type *
+                </label>
+                <div className="flex gap-6 mb-4">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="institutionType"
+                        value="government"
+                        checked={institutionType === 'government'}
+                        onChange={() => {
+                          setInstitutionType('government');
+                          setFormData({ ...formData, university: '', campus: '' });
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="w-5 h-5 rounded-full border-2 border-slate-500 peer-checked:border-sky-400 peer-checked:bg-transparent transition-all"></div>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 scale-0 peer-checked:scale-100 transition-transform duration-200"></div>
+                    </div>
+                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                      Government
+                    </span>
+                  </label>
+                  
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center justify-center">
+                      <input
+                        type="radio"
+                        name="institutionType"
+                        value="private"
+                        checked={institutionType === 'private'}
+                        onChange={() => {
+                          setInstitutionType('private');
+                          setFormData({ ...formData, university: '', campus: '' });
+                        }}
+                        className="peer sr-only"
+                      />
+                      <div className="w-5 h-5 rounded-full border-2 border-slate-500 peer-checked:border-sky-400 peer-checked:bg-transparent transition-all"></div>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-sky-400 scale-0 peer-checked:scale-100 transition-transform duration-200"></div>
+                    </div>
+                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                      Private
+                    </span>
+                  </label>
+                </div>
+              </motion.div>
+
+              {/* University Dropdown */}
+              <motion.div variants={fadeRight}>
+                <label htmlFor="university" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    University/College *
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className={`
-                      w-full pl-10 pr-4 py-2 bg-white border rounded-lg
-                      focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                      transition-all duration-200
-                      ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
-                    `}
-                    placeholder="First name"
-                    disabled={isSubmitting}
-                  />
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                  <select
+                    id="university"
+                    name="university"
+                    value={formData.university}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting || !institutionType}
+                    className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
+                      fieldErrors.university 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                        : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                    }`}
+                  >
+                    <option value="" className="bg-slate-800">
+                      {!institutionType ? 'Select institution type first' : 'Select your university or college'}
+                    </option>
+                    
+                    {institutionType === 'government' && (
+                      <optgroup label="────────── Government Universities ──────────" className="bg-slate-800 text-sky-300 font-bold">
+                        {governmentUniversities.map((inst) => (
+                          <option key={inst.id} value={inst.name} className="bg-slate-800 text-white font-normal">
+                            {inst.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    
+                    {institutionType === 'private' && (
+                      <optgroup label="────────── Private Colleges ──────────" className="bg-slate-800 text-sky-300 font-bold">
+                        {privateColleges.map((inst) => (
+                          <option key={inst.id} value={inst.name} className="bg-slate-800 text-white font-normal">
+                            {inst.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
-                {errors.firstName && (
-                  <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>
+                {fieldErrors.university && (
+                  <p className="mt-1 text-xs text-red-400">{fieldErrors.university}</p>
                 )}
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Last Name *
+              </motion.div>
+
+              {/* Campus Dropdown */}
+              <motion.div variants={fadeRight}>
+                <label htmlFor="campus" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                  Campus *
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                  <select
+                    id="campus"
+                    name="campus"
+                    value={formData.campus}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting || !formData.university}
+                    className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
+                      fieldErrors.campus 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                        : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                    }`}
+                  >
+                    <option value="" className="bg-slate-800">
+                      {!formData.university ? 'Please select a university first' : 'Select your campus'}
+                    </option>
+                    {availableCampuses.map((campus) => (
+                      <option key={campus.id} value={campus.name} className="bg-slate-800">
+                        {campus.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+                {fieldErrors.campus && (
+                  <p className="mt-1 text-xs text-red-400">{fieldErrors.campus}</p>
+                )}
+              </motion.div>
+
+              {/* Department & Graduation Year Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <motion.div variants={fadeRight}>
+                  <label htmlFor="department" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Department/Field of Study *
+                  </label>
+                  <div className="relative">
+                    <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      id="department"
+                      name="department"
+                      value={formData.department}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.department 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                      placeholder="e.g., Computer Science, Business"
+                    />
+                  </div>
+                  {fieldErrors.department && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.department}</p>
+                  )}
+                </motion.div>
+
+                <motion.div variants={fadeRight}>
+                  <label htmlFor="graduationYear" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                    Graduation Year *
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                    <select
+                      id="graduationYear"
+                      name="graduationYear"
+                      value={formData.graduationYear}
+                      onChange={handleChange}
+                      required
+                      disabled={isSubmitting}
+                      className={`w-full pl-10 pr-10 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white appearance-none cursor-pointer disabled:bg-white/5 disabled:cursor-not-allowed ${
+                        fieldErrors.graduationYear 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                          : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                      }`}
+                    >
+                      <option value="" className="bg-slate-800">Select graduation year</option>
+                      {years.map((year) => (
+                        <option key={year} value={year} className="bg-slate-800">{year}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  {fieldErrors.graduationYear && (
+                    <p className="mt-1 text-xs text-red-400">{fieldErrors.graduationYear}</p>
+                  )}
+                </motion.div>
+              </div>
+
+              {/* Current Location */}
+              <motion.div variants={fadeRight}>
+                <label htmlFor="currentLocation" className="block text-xs font-bold text-sky-300 uppercase tracking-wider mb-2">
+                  Current Location *
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className={`
-                      w-full pl-10 pr-4 py-2 bg-white border rounded-lg
-                      focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                      transition-all duration-200
-                      ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
-                    `}
-                    placeholder="Last name"
+                    id="currentLocation"
+                    name="currentLocation"
+                    value={formData.currentLocation}
+                    onChange={handleChange}
+                    required
                     disabled={isSubmitting}
+                    className={`w-full pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl focus:outline-none transition-all text-white placeholder:text-slate-400 disabled:bg-white/5 disabled:cursor-not-allowed ${
+                      fieldErrors.currentLocation 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-100/20' 
+                        : 'border-white/20 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'
+                    }`}
+                    placeholder="City, Country"
                   />
                 </div>
-                {errors.lastName && (
-                  <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>
+                {fieldErrors.currentLocation && (
+                  <p className="mt-1 text-xs text-red-400">{fieldErrors.currentLocation}</p>
                 )}
-              </div>
-            </div>
+              </motion.div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`
-                    w-full pl-10 pr-4 py-2 bg-white border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                    transition-all duration-200
-                    ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
-                  `}
-                  placeholder="you@example.com"
-                  disabled={isSubmitting}
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Password *
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`
-                    w-full pl-10 pr-12 py-2 bg-white border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                    transition-all duration-200
-                    ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
-                  `}
-                  placeholder="Min 6 characters"
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-red-600">{errors.password}</p>
-              )}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Confirm Password *
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className={`
-                    w-full pl-10 pr-12 py-2 bg-white border rounded-lg
-                    focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent
-                    transition-all duration-200
-                    ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-slate-200'}
-                  `}
-                  placeholder="Confirm your password"
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>
-              )}
-            </div>
-
-            {/* Role Selection */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Account Type
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200"
+              {/* Submit Button */}
+              <motion.button
+                variants={fadeRight}
+                type="submit"
                 disabled={isSubmitting}
+                className="w-full group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-sky-900 rounded-xl font-bold shadow-[0_20px_35px_-10px_rgba(14,165,233,0.4)] hover:shadow-[0_25px_40px_-12px_rgba(14,165,233,0.5)] transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
               >
-                <option value="user">Regular User</option>
-                <option value="admin">Administrator</option>
-              </select>
-              <p className="mt-1 text-xs text-slate-500 flex items-center gap-1">
-                {formData.role === 'admin' ? (
+                {isSubmitting ? (
                   <>
-                    <Shield className="w-3 h-3 text-purple-500" />
-                    Admin accounts have full system access
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm tracking-wide">Submitting...</span>
                   </>
                 ) : (
                   <>
-                    <User className="w-3 h-3 text-sky-500" />
-                    Regular users can view and manage their own data
+                    <span className="text-sm tracking-wide">Join Alumni Network</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
-              </p>
-            </div>
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 opacity-0 group-hover:opacity-10 transition-opacity" />
+              </motion.button>
+            </form>
+          </motion.div>
+        </div>
+      </div>
 
-            {errors.general && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2"
-              >
-                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
-                <p className="text-sm text-red-600">{errors.general}</p>
-              </motion.div>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              isLoading={isSubmitting || isLoading}
-              className="mt-6"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Creating Account...' : 'Create Account'}
-            </Button>
-
-            <p className="text-center text-sm text-slate-600 mt-4">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => router.push('/login')}
-                className="text-sky-600 hover:text-sky-700 font-medium hover:underline transition-colors"
-              >
-                Sign in here
-              </button>
-            </p>
-
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-2 bg-white/70 text-slate-500">Join the EvaSUE Community</span>
-              </div>
-            </div>
-          </form>
-        </Card>
-      </motion.div>
-    </div>
+      {/* Decorative Bottom Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-sky-950 to-transparent pointer-events-none z-10" />
+      
+      {/* Grain Texture */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+    </section>
   );
 }
