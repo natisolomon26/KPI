@@ -1,3 +1,4 @@
+import AboutBook from "./AboutBook";
 import Footer from "./Footer";
 import Header from "./Header";
 import Hero from "./Hero";
@@ -9,6 +10,7 @@ export default function Layout() {
 
       <main className="flex-1">
         <Hero />
+        <AboutBook />
       </main>
 
       <Footer />
