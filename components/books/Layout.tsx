@@ -6,6 +6,7 @@ import AboutAuthor from "./AboutAuthor";
 import WhyBookMatters from "./WhyBookMatters";
 import LaunchCeremony from "./LaunchCeremony";
 import EventTimeline from "./EventTimeline";
+import PublishingVision from "./PublishingVision";
 export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-[#fff9f4] text-slate-900">
@@ -18,7 +19,7 @@ export default function Layout() {
         <WhyBookMatters />
         <LaunchCeremony />
         <EventTimeline />
-
+        <PublishingVision />
       </main>
 
       <Footer />
