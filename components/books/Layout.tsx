@@ -8,6 +8,8 @@ import LaunchCeremony from "./LaunchCeremony";
 import EventTimeline from "./EventTimeline";
 import PublishingVision from "./PublishingVision";
 import FAQ from "./FAQ";
+import RegistrationCTA from "./RegistrationCTA";
+
 export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col bg-[#fff9f4] text-slate-900">
@@ -22,6 +24,8 @@ export default function Layout() {
         <EventTimeline />
         <PublishingVision />
         <FAQ />
+        <RegistrationCTA />
+    
       </main>
 
       <Footer />

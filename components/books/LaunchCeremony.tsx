@@ -126,7 +126,7 @@ export default function LaunchCeremony() {
               </p>
 
               <Link
-                href="/register"
+                href="/registrations"
                 className="group mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 font-bold text-white shadow-lg shadow-orange-600/20 transition hover:-translate-y-1 hover:bg-orange-700 sm:w-auto"
               >
                 Register for the Launch
