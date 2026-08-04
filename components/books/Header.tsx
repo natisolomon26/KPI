@@ -21,8 +21,8 @@ export default function Header() {
             Author
           </a>
 
-          <a href="#event" className="transition hover:text-orange-600">
-            Event
+          <a href="#launch" className="transition hover:text-orange-600">
+            Launch
           </a>
 
           <a href="#faq" className="transition hover:text-orange-600">
