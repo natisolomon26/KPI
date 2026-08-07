@@ -14,25 +14,25 @@ const features = [
   {
     title: "Biblical Foundation",
     description:
-      "Rooted in biblical truth to encourage faithful living, spiritual maturity, and a deeper relationship with God.",
+      "The book reflects on God’s faithfulness across generations and preserves the spiritual legacy that has shaped EvaSUE for more than fifty years.",
     icon: BookOpen,
   },
   {
     title: "Student Focus",
     description:
-      "Created with students and graduates in mind, addressing real-life challenges, faith, purpose, and growth.",
+      "It tells the story of students and graduates whose lives, service, and witness have helped shape the fellowship and strengthen the church.",
     icon: GraduationCap,
   },
   {
     title: "Leadership Development",
     description:
-      "Encourages servant leadership, integrity, responsibility, and purpose in ministry, work, and community.",
+      "The book honors leaders and servants of Christ whose prayers, sacrifices, and service carried the ministry forward across generations.",
     icon: Users,
   },
   {
-    title: "Practical Application",
+    title: "Living Legacy",
     description:
-      "Offers practical principles that readers can apply in daily life, relationships, leadership, and service.",
+      "More than a record of events, this history encourages today’s generation to continue the legacy of faith, service, and impact.",
     icon: Lightbulb,
   },
 ];
@@ -54,16 +54,17 @@ export default function WhyBookMatters() {
           </p>
 
           <h2 className="mt-4 text-4xl font-black leading-tight text-slate-900 sm:text-5xl">
-            More Than a Book,
+            More Than a Record,
             <span className="block text-orange-600">
-              A Guide for Faithful Living
+              It Is Our History
             </span>
           </h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-            This publication is designed to help readers grow in faith,
-            understand their purpose, develop leadership skills, and apply
-            biblical truth in everyday life.
+            The EvaSUE History Book preserves the story of God&apos;s
+            faithfulness and celebrates the students, graduates, leaders,
+            and servants whose lives have shaped the fellowship and impacted
+            the nation.
           </p>
         </div>
 

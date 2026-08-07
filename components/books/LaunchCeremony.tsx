@@ -16,22 +16,22 @@ import Container from "./Container";
 const eventDetails = [
   {
     label: "Date",
-    value: "Coming Soon",
+    value: "August 15, 2026",
     icon: CalendarDays,
   },
   {
     label: "Time",
-    value: "To Be Announced",
+    value: "2:00 PM - 6:00 PM ",
     icon: Clock3,
   },
   {
     label: "Venue",
-    value: "Addis Ababa, Ethiopia",
+    value: "International Evangelical Church (IEC) ",
     icon: MapPin,
   },
   {
-    label: "Speakers",
-    value: "Author, EvaSUE Leadership & Special Guests",
+      label: "Celebration",
+    value: "EvaSUE History Book Launch",
     icon: Mic2,
   },
 ];
@@ -67,9 +67,9 @@ export default function LaunchCeremony() {
           </h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-            Celebrate the release of EvaSUE&apos;s first published book with
-            the author, ministry leaders, invited guests, students, and
-            graduates.
+           Join us as we celebrate the launch of the EvaSUE History Book
+  (1964–2014 G.C.), honoring more than fifty years of prayers,
+  sacrifices, service, and God&apos;s faithfulness across generations.
           </p>
         </motion.div>
 
@@ -162,22 +162,23 @@ export default function LaunchCeremony() {
               </p>
 
               <h3 className="mt-3 text-3xl font-black text-slate-900">
-                Location Coming Soon
+                 International Evangelical Church
               </h3>
 
-              <p className="mt-4 max-w-sm leading-7 text-slate-600">
-                The official venue address and interactive map will appear
-                here once the launch location is confirmed.
-              </p>
-
-              <button
-                type="button"
-                disabled
-                className="mt-6 inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-orange-200 bg-white px-6 py-3 font-bold text-orange-400 opacity-80"
-              >
+             <p className="mt-2 text-sm leading-6 text-slate-600">
+  Registration is now open for the official launch ceremony at
+  International Evangelical Church in Addis Ababa.
+</p>
+<a
+      href="https://www.google.com/maps/search/?api=1&query=International+Evangelical+Church+Roosevelt+Street+Addis+Ababa"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group mt-7 inline-flex items-center gap-2 rounded-full bg-orange-600 px-6 py-3 font-bold text-white shadow-lg shadow-orange-600/20 transition hover:-translate-y-1 hover:bg-orange-700"
+    >
+             
                 <Navigation className="h-4 w-4" />
                 Open in Maps
-              </button>
+             </a>
             </div>
           </motion.div>
         </div>
