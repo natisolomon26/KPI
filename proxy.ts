@@ -8,11 +8,12 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
   // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',           // Homepage
-    '/login',      // Login page
-    '/register',   // Registration page
-  ];
+ const publicRoutes = [
+  '/',
+  '/login',
+  '/register',
+  '/registrations',
+];
   
   // Check if the current path is public
   const isPublicRoute = publicRoutes.includes(path) || 
@@ -70,7 +71,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all routes except static files
-    '/((?!_next/static|_next/image|favicon.ico|public|logo|images).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public|logo|images|books).*)',
   ],
 };

@@ -15,87 +15,67 @@ export default function AboutAuthor() {
     >
       <Container>
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          {/* Author photo placeholder */}
-          <div className="flex justify-center lg:justify-start">
-            <div className="relative">
-              <div className="absolute -inset-10 rounded-full bg-orange-200/60 blur-3xl" />
+        
+          
 
-              <div className="relative flex h-[380px] w-[300px] items-center justify-center overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-100 via-white to-amber-100 shadow-xl sm:h-[440px] sm:w-[350px]">
-                <div className="text-center">
-                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-orange-200 text-orange-700">
-                    <Users className="h-12 w-12" />
-                  </div>
+        {/* Author information */}
+<div>
+  <p className="text-sm font-bold uppercase tracking-[0.25em] text-orange-600">
+    Meet the Author
+  </p>
 
-                  <p className="mt-6 text-sm font-bold uppercase tracking-[0.2em] text-orange-700">
-                    Author Photo
-                  </p>
+  <h2 className="mt-4 text-4xl font-black leading-tight text-slate-900 sm:text-5xl">
+    The Story Behind the
+    <span className="block text-orange-600">
+      EvaSUE History Book
+    </span>
+  </h2>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Coming soon
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+  <p className="mt-6 text-lg leading-8 text-slate-600">
+    The EvaSUE History Book preserves the story of God&apos;s faithfulness
+    through generations of students, graduates, leaders, and servants of
+    Christ who have shaped the fellowship and impacted the church and nation.
+  </p>
 
-          {/* Author information */}
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.25em] text-orange-600">
-              Meet the Author
-            </p>
+  <p className="mt-4 leading-7 text-slate-600">
+    Official author and contributor information will be added here once the
+    final publication details are confirmed.
+  </p>
 
-            <h2 className="mt-4 text-4xl font-black leading-tight text-slate-900 sm:text-5xl">
-              A Life Dedicated to Faith and Service
-            </h2>
+  {/* Ministry experience */}
+  <div className="mt-8 grid gap-4 sm:grid-cols-3">
+    <ExperienceCard
+      icon={<Heart className="h-5 w-5" />}
+      title="Faith"
+      description="Celebrating generations shaped by prayer, service, and faithfulness to Christ."
+    />
 
-            <p className="mt-6 text-lg leading-8 text-slate-600">
-              The author is passionate about sharing biblical principles,
-              leadership, and practical wisdom that encourage spiritual growth
-              and personal transformation.
-            </p>
+    <ExperienceCard
+      icon={<BookOpen className="h-5 w-5" />}
+      title="History"
+      description="Preserving the story and legacy of EvaSUE from 1964 to 2014 G.C."
+    />
 
-            <p className="mt-4 leading-7 text-slate-600">
-              A complete biography, author name, ministry background, and
-              publication history will be added when the official information
-              becomes available.
-            </p>
+    <ExperienceCard
+      icon={<Users className="h-5 w-5" />}
+      title="Community"
+      description="Honoring students, graduates, leaders, and servants who carried the fellowship forward."
+    />
+  </div>
 
-            {/* Ministry experience */}
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <ExperienceCard
-                icon={<Heart className="h-5 w-5" />}
-                title="Faith"
-                description="Serving through ministry, discipleship, and Christian leadership."
-              />
+  {/* Contact */}
+  <div className="mt-8 flex flex-wrap items-center gap-3">
+    <span className="mr-2 text-sm font-semibold text-slate-700">
+      Contact EvaSUE:
+    </span>
 
-              <ExperienceCard
-                icon={<BookOpen className="h-5 w-5" />}
-                title="Teaching"
-                description="Equipping students and graduates through biblical teaching."
-              />
-
-              <ExperienceCard
-                icon={<Users className="h-5 w-5" />}
-                title="Mentorship"
-                description="Encouraging the next generation to grow in faith and purpose."
-              />
-            </div>
-
-            {/* Social links */}
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <span className="mr-2 text-sm font-semibold text-slate-700">
-                Connect:
-              </span>
-
-              
-
-              <SocialLink
-                href="mailto:info@evasue.net"
-                label="Email"
-                icon={<Mail className="h-5 w-5" />}
-              />
-            </div>
-          </div>
+    <SocialLink
+      href="mailto:info@evasue.net"
+      label="Email"
+      icon={<Mail className="h-5 w-5" />}
+    />
+  </div>
+</div>
         </div>
       </Container>
     </section>

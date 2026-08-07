@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { BookOpen, Target, Users } from "lucide-react";
 
 import Container from "./Container";
@@ -15,34 +16,15 @@ export default function AboutBook() {
             <div className="relative">
               <div className="absolute -inset-8 rounded-full bg-orange-200/50 blur-3xl" />
 
-              <div className="relative aspect-[3/4] w-[280px] overflow-hidden rounded-r-[2rem] rounded-l-lg bg-gradient-to-br from-orange-500 via-orange-400 to-amber-300 p-8 shadow-[0_35px_80px_-25px_rgba(194,65,12,0.4)] sm:w-[340px]">
-                <div className="absolute bottom-0 left-0 top-0 w-5 bg-orange-900/20" />
-
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border-[36px] border-white/15" />
-
-                <div className="relative z-10 flex h-full flex-col justify-between pl-3">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.3em] text-orange-950/70">
-                      EvaSUE Publishing
-                    </p>
-
-                    <h3 className="mt-8 text-4xl font-black leading-tight text-white sm:text-5xl">
-                      Book
-                      <span className="block">Title</span>
-                    </h3>
-
-                    <p className="mt-4 text-sm leading-6 text-orange-50">
-                      Official title and cover artwork coming soon.
-                    </p>
-                  </div>
-
-                  <p className="text-sm font-bold uppercase tracking-[0.2em] text-white">
-                    Coming Soon
-                  </p>
-                </div>
+              <div className="relative overflow-hidden rounded-[2rem] bg-white p-3 shadow-[0_35px_80px_-25px_rgba(194,65,12,0.4)]">
+                <Image
+                  src="/books/cover.jpg"
+                  alt="EvaSUE History Book Cover"
+                  width={380}
+                  height={560}
+                  className="h-auto w-[280px] rounded-[1.5rem] object-cover sm:w-[340px]"
+                />
               </div>
-
-              <div className="absolute bottom-3 right-[-7px] top-3 -z-10 w-4 rounded-r-xl bg-[#f7ead7] shadow-lg" />
             </div>
           </div>
 
@@ -53,32 +35,36 @@ export default function AboutBook() {
             </p>
 
             <h2 className="mt-4 text-4xl font-black leading-tight text-slate-900 sm:text-5xl">
-              A Book Created to Inspire Faith and Purpose
+              EvaSUE History Book
+              <span className="block text-orange-600">
+                1964–2014 G.C.
+              </span>
             </h2>
 
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              This upcoming EvaSUE publication is being developed to encourage
-              spiritual growth, strengthen Christian character, and equip
-              readers to live with purpose.
+              The EvaSUE History Book is a testimony of God&apos;s faithfulness
+              across generations. It preserves the story of students,
+              graduates, leaders, and servants of Christ who helped shape the
+              fellowship, strengthen the church, and impact the nation.
             </p>
 
             <p className="mt-4 leading-7 text-slate-600">
-              The official summary, title, author details, and publication
-              information will be added when the final book content becomes
-              available.
+              More than a record of events, this book celebrates the prayers,
+              sacrifices, service, and legacy that have carried EvaSUE for
+              more than fifty years.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <InfoCard
                 icon={<Target className="h-5 w-5" />}
                 title="Why It Was Written"
-                description="To provide practical and faith-based encouragement for students, graduates, and emerging leaders."
+                description="To preserve EvaSUE's history, honor God's faithfulness, and celebrate the people whose service helped shape the fellowship across generations."
               />
 
               <InfoCard
                 icon={<Users className="h-5 w-5" />}
-                title="Intended Audience"
-                description="Students, graduates, ministry leaders, and anyone seeking spiritual and personal growth."
+                title="Who It Is For"
+                description="Students, graduates, ministry leaders, church members, and anyone connected to the story and legacy of EvaSUE."
               />
             </div>
 
@@ -93,8 +79,10 @@ export default function AboutBook() {
                 </h3>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  A concise summary will be added here after the book manuscript
-                  and official publication information are finalized.
+                  A historical account of EvaSUE&apos;s journey from 1964 to
+                  2014 G.C., celebrating the prayers, sacrifices, service, and
+                  faithfulness that have shaped generations of students,
+                  graduates, and servants of Christ.
                 </p>
               </div>
             </div>
