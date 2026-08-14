@@ -24,23 +24,23 @@ export function useRegistrations() {
   } = useRegistrationStore();
 
   // Query for getting registrations with pagination and search
-  const useGetRegistrations = (search: string, page: number) => {
+  const useGetRegistrations = (search: string, page: number, options?: { enabled?: boolean }) => {
     return useQuery({
       queryKey: ['registrations', page, search],
       queryFn: async () => {
         setFetching(true);
         try {
           const result = await registrationService.getAllRegistrations(page, 10, search);
-          // Update store with the fetched data
           await fetchRegistrations(page, 10, search);
           return result;
         } finally {
           setFetching(false);
         }
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       retry: 1,
-      enabled: true,
+      // 🔥 FIX: Disabled by default - only enable when explicitly told
+      enabled: options?.enabled ?? false,
     });
   };
 

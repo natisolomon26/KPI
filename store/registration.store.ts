@@ -88,9 +88,8 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
     
     try {
       const result = await registrationService.createRegistration(data);
-      // Refresh the current page
-      const { pagination, fetchRegistrations } = get();
-      await fetchRegistrations(pagination.page, pagination.limit);
+      // ✅ REMOVED: The auto-fetch that was causing the 401
+      // No more fetchRegistrations call here!
       set({ isLoading: false });
       return result;
     } catch (error) {
@@ -107,9 +106,7 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
     
     try {
       const result = await registrationService.updateRegistration(id, data);
-      // Refresh the current page
-      const { pagination, fetchRegistrations } = get();
-      await fetchRegistrations(pagination.page, pagination.limit);
+      // ✅ REMOVED: Auto-fetch here too for consistency
       set({ isLoading: false });
       return result;
     } catch (error) {
@@ -126,9 +123,7 @@ export const useRegistrationStore = create<RegistrationState>((set, get) => ({
     
     try {
       const result = await registrationService.deleteRegistration(id);
-      // Refresh the current page
-      const { pagination, fetchRegistrations } = get();
-      await fetchRegistrations(pagination.page, pagination.limit);
+      // ✅ REMOVED: Auto-fetch here too for consistency
       set({ isLoading: false });
       return result;
     } catch (error) {

@@ -4,10 +4,10 @@ import dbConnect from '@/lib/mongodb';
 import Registration from '@/models/Registration';
 import { verifyAuth, verifyAdmin } from '@/lib/auth';
 
-// GET /api/registrations - Get all registrations (authenticated users)
+// GET /api/registrations - Get all registrations (authenticated users only)
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication (both user and admin can view)
+    // Verify authentication (only authenticated users can view registrations)
     const authResult = await verifyAuth(request);
     if (!authResult.isAuthenticated) {
       return NextResponse.json(
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-      stats, // Add stats to the response
+      stats,
       user: authResult.user,
     });
   } catch (error) {
@@ -111,19 +111,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/registrations - Create new registration (authenticated users)
+// POST /api/registrations - Create new registration (PUBLIC - No auth required)
 export async function POST(request: NextRequest) {
+  console.log('🔵 POST /api/registrations - Public endpoint called');
+  
   try {
-    // Verify authentication (both user and admin can create)
-    const authResult = await verifyAuth(request);
-    if (!authResult.isAuthenticated) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please login.' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
+    console.log('🔵 Request body:', body);
     
     // Validate required fields
     const requiredFields = [
@@ -133,6 +127,7 @@ export async function POST(request: NextRequest) {
     
     for (const field of requiredFields) {
       if (!body[field]) {
+        console.log(`🔴 Missing field: ${field}`);
         return NextResponse.json(
           { error: `${field} is required` },
           { status: 400 }
@@ -141,10 +136,12 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
+    console.log('🟢 Database connected');
 
     // Check if email already exists
     const existingEmail = await Registration.findOne({ email: body.email });
     if (existingEmail) {
+      console.log('🔴 Email already exists:', body.email);
       return NextResponse.json(
         { error: 'Email already registered' },
         { status: 409 }
@@ -154,13 +151,14 @@ export async function POST(request: NextRequest) {
     // Check if phone number already exists
     const existingPhone = await Registration.findOne({ phoneNumber: body.phoneNumber });
     if (existingPhone) {
+      console.log('🔴 Phone already exists:', body.phoneNumber);
       return NextResponse.json(
         { error: 'Phone number already registered' },
         { status: 409 }
       );
     }
 
-    // Create new registration
+    // Create new registration (NO AUTH REQUIRED)
     const registration = await Registration.create({
       firstName: body.firstName,
       lastName: body.lastName,
@@ -171,16 +169,19 @@ export async function POST(request: NextRequest) {
       department: body.department,
       graduationYear: body.graduationYear,
       currentLocation: body.currentLocation,
-      createdBy: authResult.user?.userId, // Track who created it
+      // No createdBy field since no auth
     });
+
+    console.log('🟢 Registration created:', registration._id);
 
     return NextResponse.json({
       success: true,
       message: 'Registration submitted successfully',
       data: registration,
     }, { status: 201 });
+    
   } catch (error: any) {
-    console.error('Error creating registration:', error);
+    console.error('🔴 Error creating registration:', error);
     
     // Handle duplicate key error
     if (error.code === 11000) {
