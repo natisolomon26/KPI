@@ -15,8 +15,28 @@ export default function AboutAuthor() {
     >
       <Container>
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-        
-          
+          {/* Author photo placeholder */}
+          <div className="flex justify-center lg:justify-start">
+            <div className="relative">
+              <div className="absolute -inset-10 rounded-full bg-orange-200/60 blur-3xl" />
+
+              <div className="relative flex h-[380px] w-[300px] items-center justify-center overflow-hidden rounded-[2rem] border border-orange-100 bg-gradient-to-br from-orange-100 via-white to-amber-100 shadow-xl sm:h-[440px] sm:w-[350px]">
+                <div className="text-center">
+                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-orange-200 text-orange-700">
+                    <Users className="h-12 w-12" />
+                  </div>
+
+                  <p className="mt-6 text-sm font-bold uppercase tracking-[0.2em] text-orange-700">
+                    Author Photo
+                  </p>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Coming soon
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
         {/* Author information */}
 <div>

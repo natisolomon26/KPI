@@ -168,12 +168,7 @@ export default function Hero() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
 
-            <Link
-              href="/registrations"
-              className="inline-flex items-center justify-center rounded-full border border-orange-300 bg-white px-7 py-3.5 font-bold text-orange-700 transition hover:-translate-y-1 hover:bg-orange-50"
-            >
-              Register for the Launch
-            </Link>
+            
           </motion.div>
         </motion.div>
 
