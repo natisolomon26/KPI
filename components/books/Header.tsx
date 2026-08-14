@@ -17,25 +17,21 @@ export default function Header() {
             Book
           </a>
 
-          <a href="#author" className="transition hover:text-orange-600">
-            Author
-          </a>
+         
 
           <a href="#launch" className="transition hover:text-orange-600">
             Launch
           </a>
 
-          <a href="#faq" className="transition hover:text-orange-600">
-            FAQ
-          </a>
+        
         </nav>
 
-        <Link
+        {/* <Link
           href="/register"
           className="rounded-full bg-orange-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-orange-700"
         >
           Register
-        </Link>
+        </Link> */}
       </Container>
     </header>
   );

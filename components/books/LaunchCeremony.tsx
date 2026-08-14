@@ -115,25 +115,7 @@ export default function LaunchCeremony() {
               })}
             </div>
 
-            <div className="mt-7 rounded-2xl bg-orange-50 p-5">
-              <h3 className="text-lg font-black text-slate-900">
-                Reserve Your Place
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Registration details will be updated once the official launch
-                date and venue are confirmed.
-              </p>
-
-              <Link
-                href="/registrations"
-                className="group mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-orange-600 px-7 py-3.5 font-bold text-white shadow-lg shadow-orange-600/20 transition hover:-translate-y-1 hover:bg-orange-700 sm:w-auto"
-              >
-                Register for the Launch
-
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
+            
           </motion.div>
 
           {/* Map placeholder */}
