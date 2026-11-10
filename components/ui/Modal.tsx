@@ -1,78 +1,79 @@
-// components/ui/Modal.tsx (updated)
-import { ReactNode, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+'use client';
+
+import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  description?: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  dismissible?: boolean;
 }
 
-export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
+const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
+
+export function Modal({ isOpen, onClose, title, description, children, size = 'md', dismissible = true }: ModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.showModal();
+    const firstField = dialog.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+    firstField?.focus();
     return () => {
-      document.body.style.overflow = 'unset';
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [isOpen]);
 
-  const sizes = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-  };
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (dismissible) onClose();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [isOpen, dismissible, onClose]);
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50"
-          />
-          
-          {/* Modal Container - Centered */}
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ type: "spring", duration: 0.3, bounce: 0.3 }}
-                className={`w-full ${sizes[size]} bg-white rounded-xl shadow-2xl overflow-hidden`}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-                  <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-                  <button
-                    onClick={onClose}
-                    className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-slate-500" />
-                  </button>
-                </div>
-                
-                {/* Content */}
-                <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
-                  {children}
-                </div>
-              </motion.div>
-            </div>
+  if (!isOpen || typeof document === 'undefined') return null;
+
+  return createPortal(
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
+      onCancel={(event) => { event.preventDefault(); if (dismissible) onClose(); }}
+      onClick={(event) => { if (event.target === event.currentTarget && dismissible) onClose(); }}
+      className={`m-auto w-[calc(100%_-_2rem)] overflow-visible rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm ${sizes[size]}`}
+    >
+      <div className="flex max-h-[calc(100dvh_-_2rem)] flex-col overflow-hidden rounded-2xl">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div>
+            <h2 id={titleId} className="text-lg font-semibold tracking-tight">{title}</h2>
+            {description && <p id={descriptionId} className="mt-1 text-xs leading-relaxed text-slate-500">{description}</p>}
           </div>
-        </>
-      )}
-    </AnimatePresence>
+          <button type="button" onClick={onClose} disabled={!dismissible} aria-label="Close dialog" className="-mr-1 rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:opacity-30">
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto overscroll-contain p-5 sm:p-7">{children}</div>
+      </div>
+    </dialog>,
+    document.body,
   );
 }

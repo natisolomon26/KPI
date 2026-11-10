@@ -2,7 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Registration from '@/models/Registration';
-import { verifyAuth, verifyAdmin } from '@/lib/auth';
+import { verifyAuth } from '@/lib/auth';
+import { buildRegistrationQuery } from '@/lib/registration-query';
 
 // GET /api/registrations - Get all registrations (authenticated users only)
 export async function GET(request: NextRequest) {
@@ -18,47 +19,38 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    // Get query parameters
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const search = searchParams.get('search');
-    const university = searchParams.get('university');
-    const department = searchParams.get('department');
-
-    // Build query
-    let query: any = {};
-    
-    if (status && status !== 'all') {
-      query.status = status;
-    }
-    
-    if (search) {
-      query.$text = { $search: search };
-    }
-
-    if (university) {
-      query.university = university;
-    }
-
-    if (department) {
-      query.department = department;
-    }
+    const { query, sort, page, limit } = buildRegistrationQuery(searchParams);
 
     // Execute query with pagination
     const skip = (page - 1) * limit;
     const registrations = await Registration.find(query)
-      .sort({ registeredAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit);
 
     const total = await Registration.countDocuments(query);
 
+    // Calendar boundaries follow the workspace timezone (UTC+3).
+    const localNow = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const year = localNow.getUTCFullYear();
+    const month = localNow.getUTCMonth();
+    const monthStart = (offset: number) => new Date(Date.UTC(year, month + offset, 1) - 3 * 60 * 60 * 1000);
+
     // Get total statistics (for all data, not filtered)
     const totalStats = await Registration.aggregate([
       {
         $facet: {
+          topUniversities: [
+            { $group: { _id: '$university', count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+            { $limit: 5 },
+          ],
+          monthlyRegistrations: [
+            { $match: { registeredAt: { $gte: monthStart(-5) } } },
+            { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$registeredAt', timezone: 'Africa/Addis_Ababa' } }, count: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+          ],
           totalCount: [{ $count: 'count' }],
           uniqueUniversities: [
             { $group: { _id: '$university' } },
@@ -68,8 +60,8 @@ export async function GET(request: NextRequest) {
             {
               $match: {
                 registeredAt: {
-                  $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                  $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+                  $gte: monthStart(0),
+                  $lt: monthStart(1)
                 }
               }
             },
@@ -100,6 +92,15 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit),
       },
       stats,
+      insights: {
+        topUniversities: (totalStats[0]?.topUniversities ?? []).map((item: { _id: string; count: number }) => ({ name: item._id, count: item.count })),
+        monthlyRegistrations: Array.from({ length: 6 }, (_, index) => {
+          const date = new Date(Date.UTC(year, month - 5 + index, 1));
+          const monthKey = date.toISOString().slice(0, 7);
+          const item = totalStats[0]?.monthlyRegistrations.find((item: { _id: string }) => item._id === monthKey);
+          return { month: monthKey, count: item?.count ?? 0 };
+        }),
+      },
       user: authResult.user,
     });
   } catch (error) {

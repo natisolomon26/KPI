@@ -29,32 +29,18 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://books.evasue.net"),
 
   title: {
-    default: "EvaSUE Books",
-    template: "%s | EvaSUE Books",
+    default: "EvaSUE Graduates and Alumni",
+    template: "%s | EvaSUE",
   },
 
-  description:
-    "Official landing page for EvaSUE Publishing and the first EvaSUE book launch.",
-
-  keywords: [
-    "EvaSUE",
-    "EvaSUE Books",
-    "EvaSUE Publishing",
-    "Christian books",
-    "Christian publishing",
-    "Book launch",
-    "Ethiopia",
-  ],
-
   openGraph: {
-    title: "EvaSUE Books",
+    title: "EvaSUE Graduates and Alumni",
     description:
-      "Discover EvaSUE's first publication and learn about the official book launch.",
+      "Evangelical Students Union of Ethiopia (EvaSUE).",
     url: "https://books.evasue.net",
-    siteName: "EvaSUE Books",
+    siteName: "EvaSUE Graduates",
     type: "website",
     locale: "en_US",
     images: [
@@ -65,19 +51,6 @@ export const metadata: Metadata = {
         alt: "EvaSUE Books",
       },
     ],
-  },
-
-  twitter: {
-    card: "summary_large_image",
-    title: "EvaSUE Books",
-    description:
-      "Discover EvaSUE's first publication and official launch event.",
-    images: ["/logo/logo.svg"],
-  },
-
-  icons: {
-    icon: "/logo/logo.svg",
-    apple: "/logo/logo.svg",
   },
 
   robots: {

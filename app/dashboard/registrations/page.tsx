@@ -1,1188 +1,244 @@
-// app/dashboard/registrations/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  Eye, 
-  Download,
-  RefreshCw,
-  UserPlus,
-  Calendar,
-  Mail,
-  Phone,
-  MapPin,
-  GraduationCap,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  TrendingUp,
-  Globe,
-  Trash2,
-  Edit,
-  CheckCircle,
-  Loader2,
-  School,
-  BookOpen,
-  Shield,
-  AlertCircle
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Search, Eye, Download, RefreshCw, UserPlus, CalendarDays, Mail, Phone, MapPin, GraduationCap, ChevronLeft, ChevronRight, Users, Globe2, Trash2, Pencil, ShieldCheck, SlidersHorizontal, X, ArrowUpRight, AlertCircle, FileSpreadsheet, Inbox, Building2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
-import { useRegistrations } from '@/hooks/useRegistrations';
+import { RegistrationForm } from '@/components/dashboard/RegistrationForm';
+import { useRegistrations, useRegistrationQuery } from '@/hooks/useRegistrations';
 import { useAuthStore } from '@/store/auth.store';
-import { format } from 'date-fns';
-import { Registration } from '@/lib/types/api'; // Use Registration from types
-import { allInstitutions, getCampusesByUniversity } from '@/data/campus';
-import toast from 'react-hot-toast';
+import { allInstitutions } from '@/data/campus';
+import type { Registration, RegistrationRequest } from '@/lib/types/api';
+import type { RegistrationFilters } from '@/services/registration.service';
 
-// Generate years for dropdown (last 50 years)
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
+type DialogState = { type: 'add' | 'export' } | { type: 'view' | 'edit' | 'delete'; registration: Registration } | null;
+interface DirectoryState {
+  search: string;
+  university: string;
+  graduationYear: string;
+  sort: NonNullable<RegistrationFilters['sort']>;
+  page: number;
+  limit: number;
+}
+const initialFilters: DirectoryState = { search: '', university: '', graduationYear: '', sort: 'newest', page: 1, limit: 10 };
+const selectClass = 'min-w-0 rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-7 text-xs text-slate-600 focus:border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-50';
+const formatDate = (value: string) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Africa/Addis_Ababa' });
+
+function AlumniAvatar({ registration, large = false }: { registration: Registration; large?: boolean }) {
+  const palettes = ['bg-sky-50 text-sky-700 ring-sky-100', 'bg-violet-50 text-violet-700 ring-violet-100', 'bg-emerald-50 text-emerald-700 ring-emerald-100', 'bg-amber-50 text-amber-700 ring-amber-100'];
+  const color = (registration.firstName.charCodeAt(0) || 0) % palettes.length;
+  return <span aria-hidden="true" className={`flex shrink-0 items-center justify-center rounded-full font-semibold ring-1 ring-inset ${palettes[color]} ${large ? 'h-16 w-16 text-xl' : 'h-10 w-10 text-xs'}`}>{registration.firstName[0]}{registration.lastName[0]}</span>;
+}
+
+function RowActions({ registration, isAdmin, onOpen }: { registration: Registration; isAdmin: boolean; onOpen: (dialog: DialogState) => void }) {
+  const name = `${registration.firstName} ${registration.lastName}`;
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <button type="button" onClick={() => onOpen({ type: 'view', registration })} aria-label={`View ${name}`} title="View details" className="rounded-lg p-2 text-slate-400 transition hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><Eye className="h-4 w-4" /></button>
+      {isAdmin && <>
+        <button type="button" onClick={() => onOpen({ type: 'edit', registration })} aria-label={`Edit ${name}`} title="Edit registration" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><Pencil className="h-3.5 w-3.5" /></button>
+        <button type="button" onClick={() => onOpen({ type: 'delete', registration })} aria-label={`Delete ${name}`} title="Delete registration" className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+      </>}
+    </div>
+  );
+}
+
+function RegistrationDetails({ registration }: { registration: Registration }) {
+  const fields = [
+    { label: 'Email address', value: registration.email, href: `mailto:${registration.email}`, icon: Mail },
+    { label: 'Phone number', value: registration.phoneNumber, href: `tel:${registration.phoneNumber}`, icon: Phone },
+    { label: 'Institution', value: registration.university, icon: Building2 },
+    { label: 'Campus', value: registration.campus, icon: GraduationCap },
+    { label: 'Department', value: registration.department, icon: GraduationCap },
+    { label: 'Current location', value: registration.currentLocation, icon: MapPin },
+  ];
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 rounded-2xl border border-sky-100/70 bg-sky-50/50 p-5">
+        <AlumniAvatar registration={registration} large />
+        <div className="min-w-0"><h3 className="break-words text-lg font-semibold text-slate-900">{registration.firstName} {registration.lastName}</h3><span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white bg-white/80 px-2.5 py-1 text-[10px] font-medium text-sky-700"><GraduationCap className="h-3 w-3" />Class of {registration.graduationYear}</span></div>
+      </div>
+      <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        {fields.map(({ label, value, href, icon: Icon }) => <div key={label} className="flex min-w-0 items-start gap-3"><span className="mt-0.5 rounded-lg bg-slate-50 p-2 text-slate-400"><Icon className="h-4 w-4" /></span><div className="min-w-0"><dt className="text-[10px] font-medium text-slate-400">{label}</dt><dd className="mt-1 break-words text-xs leading-relaxed text-slate-700">{href ? <a href={href} className="hover:text-sky-700 hover:underline">{value}</a> : value || '—'}</dd></div></div>)}
+      </dl>
+      <div className="flex flex-wrap justify-between gap-2 rounded-xl bg-slate-50 px-4 py-3 text-[10px] text-slate-400"><span>Registered {formatDate(registration.registeredAt)}</span><span>Updated {formatDate(registration.updatedAt || registration.registeredAt)}</span></div>
+    </div>
+  );
+}
 
 export default function RegistrationsPage() {
-  const { user } = useAuthStore();
-  const isAdmin = user?.role === 'admin';
-  
-  // State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<Partial<Registration>>({});
-  const [availableCampuses, setAvailableCampuses] = useState<Array<{id: string, name: string}>>([]);
-  const [addFormData, setAddFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    university: '',
-    campus: '',
-    department: '',
-    graduationYear: '',
-    currentLocation: '',
+  const isAdmin = useAuthStore(state => state.user?.role === 'admin');
+  const [searchInput, setSearchInput] = useState('');
+  const [filters, setFilters] = useState<DirectoryState>(initialFilters);
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const { deleteRegistration, updateRegistration, submitRegistration, exportRegistrations } = useRegistrations();
+  const { data, isPending, isFetching, isPlaceholderData, error, refetch, dataUpdatedAt } = useRegistrationQuery(filters.search, filters.page, filters.limit, {
+    university: filters.university, graduationYear: filters.graduationYear, sort: filters.sort,
   });
-  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  
-  // Hooks
-  const { 
-    useGetRegistrations, 
-    deleteRegistration, 
-    updateRegistration, 
-    submitRegistration,
-    exportRegistrations,
-    stats,
-    registrations,
-    isLoading,
-    isFetching,
-    totalPages,
-    pagination,
-    error
-  } = useRegistrations();
-  
-  // Fetch registrations
-  const { refetch } = useGetRegistrations(searchTerm, currentPage);
+  const registrations = data?.data ?? [];
+  const stats = data?.stats;
+  const pagination = data?.pagination;
+  const totalPages = Math.max(1, pagination?.pages ?? 1);
+  const hasFilters = !!(searchInput.trim() || filters.university || filters.graduationYear);
+  const isSaving = submitRegistration.isPending || updateRegistration.isPending;
+  const currentYear = new Date().getFullYear();
+  const pageNumbers = [...new Set([1, filters.page - 1, filters.page, filters.page + 1, totalPages])].filter(page => page >= 1 && page <= totalPages).sort((a, b) => a - b);
+  const showingFrom = pagination?.total ? (pagination.page - 1) * pagination.limit + 1 : 0;
+  const showingTo = pagination ? Math.min(pagination.page * pagination.limit, pagination.total) : 0;
 
-  // Update campuses when university changes in edit form
   useEffect(() => {
-    if (editFormData.university) {
-      const selectedUniv = allInstitutions.find(inst => inst.name === editFormData.university);
-      if (selectedUniv && selectedUniv.type === 'university') {
-        const campuses = getCampusesByUniversity(selectedUniv.id);
-        setAvailableCampuses(campuses);
-      } else {
-        setAvailableCampuses([{ id: "main-campus", name: "Main Campus" }]);
-      }
-    }
-  }, [editFormData.university]);
+    const timeout = setTimeout(() => {
+      const search = searchInput.trim();
+      setFilters(previous => previous.search === search ? previous : { ...previous, search, page: 1 });
+    }, 350);
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
 
-  // Handlers
-  const handleViewDetails = (registration: Registration) => {
-    setSelectedRegistration(registration);
-    setIsViewModalOpen(true);
+  const changeFilter = <K extends keyof DirectoryState>(field: K, value: DirectoryState[K]) => {
+    setFilters(previous => ({ ...previous, [field]: value, page: 1 }));
   };
-
-  const handleEdit = (registration: Registration) => {
-    if (!isAdmin) {
-      toast.error('Only administrators can edit registrations');
-      return;
-    }
-    setSelectedRegistration(registration);
-    setEditFormData({
-      firstName: registration.firstName,
-      lastName: registration.lastName,
-      email: registration.email,
-      phoneNumber: registration.phoneNumber,
-      university: registration.university,
-      campus: registration.campus,
-      department: registration.department,
-      graduationYear: registration.graduationYear,
-      currentLocation: registration.currentLocation,
-    });
-    setIsEditModalOpen(true);
+  const clearFilters = () => {
+    setSearchInput('');
+    setFilters(previous => ({ ...initialFilters, limit: previous.limit, sort: previous.sort }));
   };
+  const openDialog = (next: DialogState) => { setDeleteError(''); setDialog(next); };
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedRegistration) return;
-    
+  const saveRegistration = async (values: RegistrationRequest) => {
+    if (!isAdmin) throw new Error('Administrator access is required.');
+    if (dialog?.type === 'edit') {
+      await updateRegistration.mutateAsync({ id: dialog.registration._id, data: values });
+      toast.success('Registration updated');
+    } else {
+      await submitRegistration.mutateAsync(values);
+      toast.success('Alumnus added to the community');
+    }
+    setDialog(null);
+  };
+  const confirmDelete = async () => {
+    if (dialog?.type !== 'delete' || !isAdmin) return;
+    setDeleteError('');
     try {
-      const result = await updateRegistration.mutateAsync({
-        id: selectedRegistration._id,
-        data: editFormData
-      });
-      
-      if (result.success) {
-        toast.success('Registration updated successfully');
-        setIsEditModalOpen(false);
-        refetch();
-      }
-    } catch (error) {
-      toast.error('Failed to update registration');
-    }
+      await deleteRegistration.mutateAsync(dialog.registration._id);
+      if (registrations.length === 1 && filters.page > 1) setFilters(previous => ({ ...previous, page: previous.page - 1 }));
+      toast.success('Registration deleted');
+      setDialog(null);
+    } catch (error) { setDeleteError(error instanceof Error ? error.message : 'Unable to delete this registration.'); }
   };
-
-  const handleDelete = async () => {
-    if (!selectedRegistration) return;
-    
-    if (!isAdmin) {
-      toast.error('Only administrators can delete registrations');
-      return;
-    }
-    
+  const downloadExport = async () => {
     try {
-      const result = await deleteRegistration.mutateAsync(selectedRegistration._id);
-      if (result.success) {
-        toast.success('Registration deleted successfully');
-        setIsDeleteModalOpen(false);
-        refetch();
-      }
-    } catch (error) {
-      toast.error('Failed to delete registration');
-    }
+      const blob = await exportRegistrations.mutateAsync();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `evasue-alumni-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('Alumni CSV downloaded');
+      setDialog(null);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to export registrations.'); }
   };
-
-  const handleExport = async () => {
-    try {
-      await exportRegistrations.mutateAsync();
-      toast.success('Export successful! CSV file downloaded.');
-      setIsExportModalOpen(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to export data');
-    }
-  };
-
-  const handleOpenAddModal = () => {
-    if (!isAdmin) {
-      toast.error('Only administrators can add registrations');
-      return;
-    }
-    setAddFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      phoneNumber: '',
-      university: '',
-      campus: '',
-      department: '',
-      graduationYear: '',
-      currentLocation: '',
-    });
-    setAddFormErrors({});
-    setSubmitSuccess(false);
-    setIsAddModalOpen(true);
-  };
-
-  const validateAddForm = () => {
-    const errors: Record<string, string> = {};
-    
-    if (!addFormData.firstName.trim()) errors.firstName = 'First name is required';
-    if (!addFormData.lastName.trim()) errors.lastName = 'Last name is required';
-    if (!addFormData.email.trim()) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(addFormData.email)) {
-      errors.email = 'Email is invalid';
-    }
-    if (!addFormData.phoneNumber.trim()) errors.phoneNumber = 'Phone number is required';
-    if (!addFormData.university) errors.university = 'University is required';
-    if (!addFormData.campus) errors.campus = 'Campus is required';
-    if (!addFormData.department.trim()) errors.department = 'Department is required';
-    if (!addFormData.graduationYear) errors.graduationYear = 'Graduation year is required';
-    if (!addFormData.currentLocation.trim()) errors.currentLocation = 'Current location is required';
-    
-    setAddFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleAddInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setAddFormData(prev => ({ ...prev, [name]: value }));
-    if (addFormErrors[name]) {
-      setAddFormErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleSubmitManualRegistration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateAddForm()) return;
-    
-    setIsSubmitting(true);
-    
-    try {
-      const result = await submitRegistration.mutateAsync(addFormData);
-      
-      if (result.success) {
-        toast.success('Registration added successfully');
-        setSubmitSuccess(true);
-        setTimeout(() => {
-          setIsAddModalOpen(false);
-          setSubmitSuccess(false);
-          refetch();
-        }, 1500);
-      }
-    } catch (error: any) {
-      console.error('Error adding registration:', error);
-      toast.error(error.message || 'Failed to add registration');
-      setAddFormErrors({ general: error.message || 'Failed to add registration. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
-  };
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm !== undefined) {
-        refetch();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm, refetch]);
-
-  const loading = isLoading || isFetching;
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">Error Loading Data</h3>
-          <p className="text-slate-600">{error}</p>
-          <Button 
-            variant="primary" 
-            className="mt-4"
-            onClick={() => refetch()}
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const summary = [
+    { label: 'Total alumni', value: stats?.total, icon: Users, colors: 'bg-sky-50 text-sky-700', note: 'Across the community' },
+    { label: 'Institutions', value: stats?.universities, icon: GraduationCap, colors: 'bg-violet-50 text-violet-600', note: 'Universities & colleges' },
+    { label: 'Joined this month', value: stats?.thisMonth, icon: CalendarDays, colors: 'bg-emerald-50 text-emerald-600', note: 'New connections' },
+    { label: 'Locations', value: stats?.countries, icon: Globe2, colors: 'bg-amber-50 text-amber-600', note: 'Places alumni call home' },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header with Role Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Registrations</h1>
-            {isAdmin ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                <Shield className="w-3 h-3" />
-                Admin Access
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                <Eye className="w-3 h-3" />
-                View Only
-              </span>
-            )}
-          </div>
-          <p className="text-slate-600 mt-1">
-            {isAdmin ? 'Manage and view all alumni registration records' : 'View alumni registration records'}
-          </p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-sky-700">Your alumni community</p>
+          <div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Alumni registrations</h1><span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium ${isAdmin ? 'border-sky-100 bg-sky-50 text-sky-700' : 'border-slate-200 bg-white text-slate-500'}`}>{isAdmin ? <ShieldCheck className="h-3 w-3" /> : <Eye className="h-3 w-3" />}{isAdmin ? 'Admin access' : 'View access'}</span></div>
+          <p className="mt-2 text-sm text-slate-500">Find familiar faces, explore connections, and keep your community up to date.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => setIsExportModalOpen(true)}
-            disabled={exportRegistrations.isPending || registrations.length === 0}
-          >
-            {exportRegistrations.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            Export
-          </Button>
-          {isAdmin && (
-            <Button variant="primary" className="gap-2" onClick={handleOpenAddModal}>
-              <UserPlus className="w-4 h-4" />
-              Add Manual
-            </Button>
-          )}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={!stats?.total || exportRegistrations.isPending} onClick={() => openDialog({ type: 'export' })}><Download className="h-4 w-4" />Export CSV</Button>
+          {isAdmin && <Button onClick={() => openDialog({ type: 'add' })}><UserPlus className="h-4 w-4" />Add alumnus</Button>}
         </div>
       </div>
 
-      {/* Stats Cards - Using stats from the API */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">Total Registrations</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.total.toLocaleString()}</p>
-            </div>
-            <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
-              <Users className="w-5 h-5 text-sky-600" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">Partner Universities</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.universities.toLocaleString()}</p>
-            </div>
-            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-emerald-600" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">This Month</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.thisMonth.toLocaleString()}</p>
-            </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-slate-600">Countries</p>
-              <p className="text-2xl font-bold text-slate-900">{stats.countries.toLocaleString()}</p>
-            </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Globe className="w-5 h-5 text-purple-600" />
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {summary.map(({ label, value, icon: Icon, colors, note }) => <Card key={label} className="p-4 sm:p-5"><div className="flex items-center justify-between gap-2"><span className="text-[11px] font-medium text-slate-500">{label}</span><span className={`rounded-xl p-2 ${colors}`}><Icon className="h-4 w-4" /></span></div><p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{isPending ? <span className="block h-8 w-16 animate-pulse rounded-lg bg-slate-100" aria-label="Loading" /> : value?.toLocaleString() ?? '—'}</p><p className="mt-1 text-[10px] text-slate-400">{note}</p></Card>)}
       </div>
 
-      {/* Search */}
-      <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or university..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-            />
-          </div>
-          <Button variant="ghost" className="gap-2" onClick={() => {
-            setSearchTerm('');
-            setCurrentPage(1);
-            refetch();
-          }}>
-            <RefreshCw className="w-4 h-4" />
-            Reset
-          </Button>
-        </div>
-      </Card>
-
-      {/* Registrations Table */}
       <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-left">Applicant</TableHead>
-              <TableHead className="text-left">Contact</TableHead>
-              <TableHead className="text-left">Education</TableHead>
-              <TableHead className="text-left">Campus & Dept</TableHead>
-              <TableHead className="text-left">Location</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <td colSpan={6} className="px-6 py-12 text-center">
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-                    <span className="ml-3 text-slate-600">Loading registrations...</span>
-                  </div>
-                </td>
-              </TableRow>
-            ) : registrations.length === 0 ? (
-              <TableRow>
-                <td colSpan={6} className="px-6 py-12 text-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Users className="w-12 h-12 text-slate-300" />
-                    <p className="text-slate-500">No registrations found</p>
-                    {searchTerm && (
-                      <p className="text-sm text-slate-400">
-                        Try adjusting your search terms
-                      </p>
-                    )}
-                  </div>
-                </td>
-              </TableRow>
-            ) : (
-              <AnimatePresence mode="wait">
-                {registrations.map((reg, index) => (
-                  <motion.tr
-                    key={reg._id || `reg-${index}`}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="hover:bg-slate-50 transition-colors group"
-                  >
-                    <TableCell className="text-left">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-sky-100 to-sky-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-sky-700 font-semibold text-sm">
-                            {getInitials(reg.firstName, reg.lastName)}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-900">
-                            {reg.firstName} {reg.lastName}
-                          </p>
-                          <p className="text-xs text-slate-500">ID: {reg._id?.slice(-8) || 'N/A'}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Mail className="w-3 h-3 flex-shrink-0" />
-                          <span className="break-all">{reg.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Phone className="w-3 h-3 flex-shrink-0" />
-                          <span>{reg.phoneNumber}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <GraduationCap className="w-3 h-3 flex-shrink-0" />
-                          <span className="font-medium">{reg.university}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Calendar className="w-3 h-3 flex-shrink-0" />
-                          <span>Class of {reg.graduationYear}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <School className="w-3 h-3 flex-shrink-0" />
-                          <span>{reg.campus || 'Not specified'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <BookOpen className="w-3 h-3 flex-shrink-0" />
-                          <span>{reg.department || 'Not specified'}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <MapPin className="w-3 h-3 flex-shrink-0" />
-                        <span>{reg.currentLocation}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleViewDetails(reg)}
-                          className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4 text-slate-600" />
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(reg)}
-                              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4 text-slate-600" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedRegistration(reg);
-                                setIsDeleteModalOpen(true);
-                              }}
-                              className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination */}
-        {totalPages > 1 && !loading && (
-          <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-600">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} records
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex gap-1">
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-                        currentPage === pageNum
-                          ? 'bg-sky-600 text-white'
-                          : 'hover:bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+        <div className="border-b border-slate-100 p-4 sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5"><h2 className="text-sm font-semibold">Registration directory</h2><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium tabular-nums text-slate-500">{pagination?.total?.toLocaleString() ?? '—'}</span></div>
+            <Button variant="ghost" size="sm" aria-label="Refresh registrations" title="Refresh registrations" disabled={isFetching} onClick={() => void refetch()}><RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span></Button>
+          </div>
+          <div className="flex flex-col gap-3 xl:flex-row">
+            <div className="relative min-w-0 flex-1">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input aria-label="Search alumni" value={searchInput} onChange={event => setSearchInput(event.target.value)} placeholder="Search by name, email, phone…" className="w-full rounded-xl border border-slate-200 bg-slate-50/60 py-2.5 pl-10 pr-10 text-xs text-slate-800 placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-sky-50" />
+              {searchInput && <button type="button" aria-label="Clear search" onClick={() => { setSearchInput(''); changeFilter('search', ''); }} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-3.5 w-3.5" /></button>}
+            </div>
+            <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] xl:w-[520px]">
+              <select aria-label="Filter by institution" value={filters.university} onChange={event => changeFilter('university', event.target.value)} className={`${selectClass} col-span-2 sm:col-span-1`}><option value="">All institutions</option>{allInstitutions.map(item => <option key={item.id} value={item.name}>{item.name}</option>)}</select>
+              <select aria-label="Filter by graduation year" value={filters.graduationYear} onChange={event => changeFilter('graduationYear', event.target.value)} className={selectClass}><option value="">All class years</option>{Array.from({ length: 70 }, (_, index) => currentYear - index).map(year => <option key={year} value={year}>Class of {year}</option>)}</select>
+              <select aria-label="Sort registrations" value={filters.sort} onChange={event => changeFilter('sort', event.target.value as DirectoryState['sort'])} className={selectClass}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Name A–Z</option></select>
             </div>
           </div>
-        )}
+          {hasFilters && <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px]"><SlidersHorizontal className="mr-1 h-3.5 w-3.5 text-slate-400" />{filters.university && <button onClick={() => changeFilter('university', '')} className="inline-flex max-w-full items-center gap-1.5 rounded-lg bg-sky-50 px-2.5 py-1.5 text-sky-700" aria-label="Remove institution filter"><span className="truncate">{filters.university}</span><X className="h-3 w-3 shrink-0" /></button>}{filters.graduationYear && <button onClick={() => changeFilter('graduationYear', '')} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1.5 text-violet-700" aria-label="Remove graduation year filter">Class of {filters.graduationYear}<X className="h-3 w-3" /></button>}<button onClick={clearFilters} className="ml-auto px-1 py-1.5 font-medium text-slate-400 hover:text-slate-700">Clear all filters</button></div>}
+        </div>
+
+        {error && <div role="alert" className="m-4 flex flex-wrap items-center gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-xs text-red-700"><AlertCircle className="h-4 w-4" /><span className="flex-1">{error.message}</span><button onClick={() => void refetch()} className="font-semibold underline">Try again</button></div>}
+        <div aria-busy={isFetching} className={`transition-opacity ${isPlaceholderData ? 'opacity-50' : ''}`}>
+          <div className="hidden md:block">
+            <Table aria-label="Alumni registrations">
+              <TableHeader><TableRow><TableHead>Alumnus</TableHead><TableHead>Institution</TableHead><TableHead>Department & class</TableHead><TableHead>Location</TableHead><TableHead>Joined</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {isPending ? Array.from({ length: 5 }, (_, index) => <TableRow key={index}><TableCell colSpan={6}><div className="flex items-center gap-4"><div className="h-10 w-10 animate-pulse rounded-full bg-slate-100" /><div className="h-8 flex-1 animate-pulse rounded-lg bg-slate-50" /></div></TableCell></TableRow>) : registrations.map(registration => <TableRow key={registration._id}>
+                  <TableCell><div className="flex items-center gap-3"><AlumniAvatar registration={registration} /><div className="min-w-0"><button onClick={() => openDialog({ type: 'view', registration })} className="whitespace-nowrap text-left text-xs font-semibold text-slate-800 hover:text-sky-700">{registration.firstName} {registration.lastName}</button><a href={`mailto:${registration.email}`} className="mt-1 block text-[10px] text-slate-400 hover:text-sky-700">{registration.email}</a></div></div></TableCell>
+                  <TableCell className="min-w-44 max-w-64"><span className="block text-xs leading-relaxed text-slate-600">{registration.university}</span><span className="mt-1 block text-[10px] text-slate-400">{registration.campus}</span></TableCell>
+                  <TableCell className="min-w-36"><span className="block text-xs text-slate-600">{registration.department}</span><span className="mt-1.5 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Class of {registration.graduationYear}</span></TableCell>
+                  <TableCell className="min-w-36 max-w-48"><span className="flex items-start gap-1.5 text-[11px] leading-relaxed"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-slate-300" />{registration.currentLocation}</span></TableCell>
+                  <TableCell className="whitespace-nowrap text-[10px] text-slate-400">{formatDate(registration.registeredAt)}</TableCell>
+                  <TableCell><RowActions registration={registration} isAdmin={isAdmin} onOpen={openDialog} /></TableCell>
+                </TableRow>)}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="space-y-3 bg-slate-50/50 p-4 md:hidden">
+            {isPending ? [1, 2, 3].map(item => <div key={item} className="h-40 animate-pulse rounded-xl border border-slate-100 bg-white" />) : registrations.map(registration => <article key={registration._id} className="rounded-xl border border-slate-200/70 bg-white p-4">
+              <div className="flex items-center gap-3"><AlumniAvatar registration={registration} /><div className="min-w-0 flex-1"><button onClick={() => openDialog({ type: 'view', registration })} className="text-left text-sm font-semibold text-slate-800">{registration.firstName} {registration.lastName}</button><p className="mt-1 truncate text-[10px] text-slate-400">{registration.email}</p></div><span className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">{registration.graduationYear}</span></div>
+              <div className="mt-4 space-y-2 text-[11px] text-slate-500"><p className="flex items-start gap-2"><GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" /><span>{registration.university}<span className="mt-0.5 block text-[10px] text-slate-400">{registration.department}</span></span></p><p className="flex items-start gap-2"><MapPin className="h-3.5 w-3.5 shrink-0 text-slate-300" />{registration.currentLocation}</p></div>
+              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2"><span className="text-[10px] text-slate-400">Joined {formatDate(registration.registeredAt)}</span><RowActions registration={registration} isAdmin={isAdmin} onOpen={openDialog} /></div>
+            </article>)}
+          </div>
+        </div>
+
+        {!isPending && !registrations.length && !error && <div className="px-5 py-14 text-center"><span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 text-slate-400">{hasFilters ? <Search className="h-6 w-6" /> : <Inbox className="h-6 w-6" />}</span><h3 className="text-sm font-semibold text-slate-800">{hasFilters ? 'No matching alumni' : 'A community waiting to grow'}</h3><p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-slate-400">{hasFilters ? 'Try a different name, institution, or graduation year.' : 'Add your first alumnus or share the public registration form to get started.'}</p><div className="mt-5">{hasFilters ? <Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button> : filters.page > 1 ? <Button variant="outline" size="sm" onClick={() => setFilters(previous => ({ ...previous, page: 1 }))}>Back to first page</Button> : <Link href="/register" className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700">Open registration form<ArrowUpRight className="h-3.5 w-3.5" /></Link>}</div></div>}
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 text-[10px] text-slate-400">Rows per page<select aria-label="Rows per page" value={filters.limit} onChange={event => changeFilter('limit', Number(event.target.value))} className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-sky-400">{[10, 25, 50].map(limit => <option key={limit} value={limit}>{limit}</option>)}</select></label><p role="status" aria-live="polite" className="text-[10px] tabular-nums text-slate-400">{isFetching ? 'Updating results…' : `${showingFrom}–${showingTo} of ${(pagination?.total ?? 0).toLocaleString()} alumni`}</p></div>
+          <nav aria-label="Registration pages" className="flex items-center gap-1"><Button variant="outline" size="sm" aria-label="Previous page" disabled={filters.page <= 1 || isFetching} onClick={() => setFilters(previous => ({ ...previous, page: previous.page - 1 }))}><ChevronLeft className="h-3.5 w-3.5" /></Button><span className="px-3 text-xs tabular-nums text-slate-500 sm:hidden">{filters.page} / {totalPages}</span><div className="hidden items-center gap-1 sm:flex">{pageNumbers.map((page, index) => <span key={page} className="flex items-center gap-1">{index > 0 && page - pageNumbers[index - 1] > 1 && <span className="px-1 text-xs text-slate-300">…</span>}<button aria-label={`Page ${page}`} aria-current={filters.page === page ? 'page' : undefined} disabled={isFetching} onClick={() => setFilters(previous => ({ ...previous, page }))} className={`h-8 min-w-8 rounded-lg px-2 text-xs font-medium tabular-nums transition disabled:opacity-50 ${filters.page === page ? 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-100' : 'text-slate-400 hover:bg-slate-100'}`}>{page}</button></span>)}</div><Button variant="outline" size="sm" aria-label="Next page" disabled={filters.page >= totalPages || isFetching} onClick={() => setFilters(previous => ({ ...previous, page: previous.page + 1 }))}><ChevronRight className="h-3.5 w-3.5" /></Button></nav>
+        </div>
       </Card>
 
-      {/* Footer with User Info */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 border-t border-slate-200 pt-4 gap-2">
-        <div>
-          Logged in as: <span className="font-medium text-slate-600">{user?.email}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${
-            isAdmin ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-          }`}>
-            {isAdmin ? <Shield className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            {isAdmin ? 'Admin' : 'User'}
-          </span>
-          <span>•</span>
-          <span>{pagination.total} total records</span>
-          <span>•</span>
-          <span>{stats.total} alumni</span>
-          <span>•</span>
-          <span>{stats.universities} universities</span>
-        </div>
-      </div>
+      <footer className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-slate-400"><span>Every registration is a new connection.</span><span>{dataUpdatedAt ? `Updated ${new Date(dataUpdatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Addis_Ababa' })} EAT` : 'Waiting for data'}</span></footer>
 
-      {/* MODALS */}
-
-      {/* View Details Modal */}
-      <Modal
-        isOpen={isViewModalOpen}
-        onClose={() => setIsViewModalOpen(false)}
-        title="Registration Details"
-        size="lg"
-      >
-        {selectedRegistration && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 pb-4 border-b border-slate-200">
-              <div className="w-20 h-20 bg-gradient-to-br from-sky-100 to-sky-200 rounded-full flex items-center justify-center">
-                <span className="text-sky-700 font-bold text-2xl">
-                  {getInitials(selectedRegistration.firstName, selectedRegistration.lastName)}
-                </span>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">
-                  {selectedRegistration.firstName} {selectedRegistration.lastName}
-                </h3>
-                <p className="text-slate-600">ID: {selectedRegistration._id || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.email}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.phoneNumber}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">University</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.university}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Campus</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <School className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.campus || 'Not specified'}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Department</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.department || 'Not specified'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Graduation Year</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.graduationYear}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Location</label>
-                  <p className="mt-1 text-slate-900 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-slate-400" />
-                    {selectedRegistration.currentLocation}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered On</label>
-                  <p className="mt-1 text-slate-900">
-                    {selectedRegistration.registeredAt ? format(new Date(selectedRegistration.registeredAt), 'PPP p') : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
+      <Modal isOpen={dialog?.type === 'view'} onClose={() => setDialog(null)} title="Alumni profile" description="Contact details and education at a glance." size="lg">
+        {dialog?.type === 'view' && <><RegistrationDetails registration={dialog.registration} /><div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-5"><Button variant="outline" onClick={() => setDialog(null)}>Close</Button>{isAdmin && <Button onClick={() => openDialog({ type: 'edit', registration: dialog.registration })}><Pencil className="h-3.5 w-3.5" />Edit registration</Button>}</div></>}
       </Modal>
-
-      {/* Edit Modal - Admin Only */}
-      {isAdmin && (
-        <Modal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          title="Edit Registration"
-          size="lg"
-        >
-          <form onSubmit={handleUpdate} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">First Name *</label>
-                <input
-                  type="text"
-                  value={editFormData.firstName || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Last Name *</label>
-                <input
-                  type="text"
-                  value={editFormData.lastName || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Email *</label>
-                <input
-                  type="email"
-                  value={editFormData.email || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number *</label>
-                <input
-                  type="tel"
-                  value={editFormData.phoneNumber || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">University *</label>
-                <select
-                  value={editFormData.university || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, university: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                >
-                  <option value="">Select university</option>
-                  {allInstitutions.map((inst) => (
-                    <option key={inst.id} value={inst.name}>
-                      {inst.name} {inst.type === 'private-college' ? '(Private)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Campus *</label>
-                <select
-                  value={editFormData.campus || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, campus: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                  disabled={!editFormData.university}
-                >
-                  <option value="">Select campus</option>
-                  {availableCampuses.map((campus) => (
-                    <option key={campus.id} value={campus.name}>
-                      {campus.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
-                <input
-                  type="text"
-                  value={editFormData.department || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                  placeholder="e.g., Computer Science"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Graduation Year *</label>
-                <select
-                  value={editFormData.graduationYear || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, graduationYear: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                >
-                  <option value="">Select year</option>
-                  {years.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Current Location *</label>
-              <input
-                type="text"
-                value={editFormData.currentLocation || ''}
-                onChange={(e) => setEditFormData({ ...editFormData, currentLocation: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                required
-                placeholder="City, Country"
-              />
-            </div>
-            
-            <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary" isLoading={updateRegistration.isPending}>
-                Save Changes
-              </Button>
-            </div>
-          </form>
+      {isAdmin && <>
+        <Modal isOpen={dialog?.type === 'add' || dialog?.type === 'edit'} onClose={() => setDialog(null)} title={dialog?.type === 'edit' ? 'Edit registration' : 'Welcome a new alumnus'} description="Keep the community connected with accurate contact and education details." size="lg" dismissible={!isSaving}>
+          {(dialog?.type === 'add' || dialog?.type === 'edit') && <RegistrationForm key={dialog.type === 'edit' ? dialog.registration._id : 'new'} initialData={dialog.type === 'edit' ? dialog.registration : undefined} onSave={saveRegistration} onCancel={() => setDialog(null)} isSaving={isSaving} />}
         </Modal>
-      )}
-
-      {/* Delete Confirmation Modal - Admin Only */}
-      {isAdmin && (
-        <Modal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          title="Delete Registration"
-          size="sm"
-        >
-          <div className="space-y-4">
-            <p className="text-slate-600">
-              Are you sure you want to delete the registration for{' '}
-              <span className="font-semibold text-slate-900">
-                {selectedRegistration?.firstName} {selectedRegistration?.lastName}
-              </span>
-              ? This action cannot be undone.
-            </p>
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="danger" onClick={handleDelete} isLoading={deleteRegistration.isPending}>
-                Delete
-              </Button>
-            </div>
-          </div>
+        <Modal isOpen={dialog?.type === 'delete'} onClose={() => setDialog(null)} title="Delete registration" description="This will permanently remove the alumni record." size="sm" dismissible={!deleteRegistration.isPending}>
+          {dialog?.type === 'delete' && <div className="space-y-5"><div className="flex items-center gap-3 rounded-xl border border-red-100 bg-red-50/50 p-4"><AlumniAvatar registration={dialog.registration} /><div className="min-w-0"><p className="text-sm font-semibold text-slate-800">{dialog.registration.firstName} {dialog.registration.lastName}</p><p className="mt-1 break-all text-[11px] text-slate-500">{dialog.registration.email}</p></div></div><p className="text-xs leading-relaxed text-slate-500">Delete this registration? This action cannot be undone.</p>{deleteError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-xs text-red-700">{deleteError}</p>}<div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><Button variant="outline" disabled={deleteRegistration.isPending} onClick={() => setDialog(null)}>Keep record</Button><Button variant="danger" isLoading={deleteRegistration.isPending} onClick={confirmDelete}>{deleteRegistration.isPending ? 'Deleting…' : 'Delete registration'}</Button></div></div>}
         </Modal>
-      )}
-
-      {/* Add Manual Registration Modal - Admin Only */}
-      {isAdmin && (
-        <Modal
-          isOpen={isAddModalOpen}
-          onClose={() => !isSubmitting && setIsAddModalOpen(false)}
-          title="Add Manual Registration"
-          size="lg"
-        >
-          <form onSubmit={handleSubmitManualRegistration} className="space-y-5">
-            {submitSuccess ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">Registration Added Successfully!</h3>
-                <p className="text-slate-600">The alumni registration has been added to the system.</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      First Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={addFormData.firstName}
-                      onChange={handleAddInputChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.firstName ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="Enter first name"
-                    />
-                    {addFormErrors.firstName && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.firstName}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Last Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={addFormData.lastName}
-                      onChange={handleAddInputChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.lastName ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="Enter last name"
-                    />
-                    {addFormErrors.lastName && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.lastName}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Email Address *
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="email"
-                        name="email"
-                        value={addFormData.email}
-                        onChange={handleAddInputChange}
-                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                          addFormErrors.email ? 'border-red-500' : 'border-slate-200'
-                        }`}
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                    {addFormErrors.email && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.email}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Phone Number *
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="tel"
-                        name="phoneNumber"
-                        value={addFormData.phoneNumber}
-                        onChange={handleAddInputChange}
-                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                          addFormErrors.phoneNumber ? 'border-red-500' : 'border-slate-200'
-                        }`}
-                        placeholder="+251 XXX XXX XXX"
-                      />
-                    </div>
-                    {addFormErrors.phoneNumber && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.phoneNumber}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      University *
-                    </label>
-                    <select
-                      name="university"
-                      value={addFormData.university}
-                      onChange={handleAddInputChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.university ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                    >
-                      <option value="">Select university/college</option>
-                      {allInstitutions.map((inst) => (
-                        <option key={inst.id} value={inst.name}>
-                          {inst.name} {inst.type === 'private-college' ? '(Private College)' : '(University)'}
-                        </option>
-                      ))}
-                    </select>
-                    {addFormErrors.university && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.university}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Campus *
-                    </label>
-                    <input
-                      type="text"
-                      name="campus"
-                      value={addFormData.campus}
-                      onChange={handleAddInputChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.campus ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="e.g., Main Campus, 6 Kilo Campus"
-                    />
-                    {addFormErrors.campus && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.campus}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Department *
-                    </label>
-                    <input
-                      type="text"
-                      name="department"
-                      value={addFormData.department}
-                      onChange={handleAddInputChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.department ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="e.g., Computer Science, Business"
-                    />
-                    {addFormErrors.department && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.department}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                      Graduation Year *
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <select
-                        name="graduationYear"
-                        value={addFormData.graduationYear}
-                        onChange={handleAddInputChange}
-                        className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 appearance-none cursor-pointer ${
-                          addFormErrors.graduationYear ? 'border-red-500' : 'border-slate-200'
-                        }`}
-                      >
-                        <option value="">Select year</option>
-                        {years.map((year) => (
-                          <option key={year} value={year}>{year}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {addFormErrors.graduationYear && (
-                      <p className="mt-1 text-xs text-red-600">{addFormErrors.graduationYear}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Current Location *
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      name="currentLocation"
-                      value={addFormData.currentLocation}
-                      onChange={handleAddInputChange}
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        addFormErrors.currentLocation ? 'border-red-500' : 'border-slate-200'
-                      }`}
-                      placeholder="City, Country"
-                    />
-                  </div>
-                  {addFormErrors.currentLocation && (
-                    <p className="mt-1 text-xs text-red-600">{addFormErrors.currentLocation}</p>
-                  )}
-                </div>
-
-                {addFormErrors.general && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{addFormErrors.general}</p>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setIsAddModalOpen(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    variant="primary"
-                    isLoading={isSubmitting}
-                  >
-                    {isSubmitting ? 'Adding...' : 'Add Registration'}
-                  </Button>
-                </div>
-              </>
-            )}
-          </form>
-        </Modal>
-      )}
-
-      {/* Export Modal */}
-      <Modal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        title="Export Data"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Download className="w-8 h-8 text-emerald-600" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Export Alumni Data</h3>
-            <p className="text-slate-600">
-              You are about to export {pagination.total} alumni records to CSV format.
-            </p>
-          </div>
-          
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-xs text-yellow-800">
-              ⚠️ The CSV file will contain all registration data including personal information.
-              Please handle this data responsibly.
-            </p>
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="primary" 
-              onClick={handleExport}
-              isLoading={exportRegistrations.isPending}
-            >
-              {exportRegistrations.isPending ? 'Exporting...' : 'Confirm Export'}
-            </Button>
-          </div>
-        </div>
+      </>}
+      <Modal isOpen={dialog?.type === 'export'} onClose={() => setDialog(null)} title="Export your alumni community" description="Download all registrations as a spreadsheet-ready CSV file." size="sm" dismissible={!exportRegistrations.isPending}>
+        <div className="space-y-5"><div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-5"><span className="rounded-xl bg-white p-3 text-emerald-600"><FileSpreadsheet className="h-6 w-6" /></span><div><p className="text-lg font-semibold tabular-nums text-slate-800">{stats?.total?.toLocaleString() ?? 0} alumni</p><p className="mt-1 text-[11px] text-slate-500">All records · CSV format</p></div></div><p className="text-xs leading-relaxed text-slate-500">Includes contact information, institution, campus, department, graduation year, and location. Current search and filters do not limit this export.</p><div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><Button variant="outline" disabled={exportRegistrations.isPending} onClick={() => setDialog(null)}>Cancel</Button><Button onClick={downloadExport} isLoading={exportRegistrations.isPending}>{!exportRegistrations.isPending && <Download className="h-4 w-4" />}{exportRegistrations.isPending ? 'Preparing CSV…' : 'Download CSV'}</Button></div></div>
       </Modal>
     </div>
   );

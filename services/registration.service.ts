@@ -1,6 +1,12 @@
 // services/registration.service.ts
 import { Registration, ApiResponse } from '@/lib/types/api';
 
+export interface RegistrationFilters {
+  university?: string;
+  graduationYear?: string;
+  sort?: 'newest' | 'oldest' | 'name';
+}
+
 export interface RegistrationsResponse extends ApiResponse<Registration[]> {
   pagination: {
     page: number;
@@ -14,6 +20,10 @@ export interface RegistrationsResponse extends ApiResponse<Registration[]> {
     thisMonth: number;
     countries: number;
   };
+  insights: {
+    topUniversities: { name: string; count: number }[];
+    monthlyRegistrations: { month: string; count: number }[];
+  };
   user: {
     userId: string;
     email: string;
@@ -21,6 +31,10 @@ export interface RegistrationsResponse extends ApiResponse<Registration[]> {
     iat: number;
     exp: number;
   };
+}
+
+export class RegistrationRequestError extends Error {
+  constructor(message: string, public status: number) { super(message); this.name = 'RegistrationRequestError'; }
 }
 
 class RegistrationService {
@@ -34,14 +48,19 @@ class RegistrationService {
     return RegistrationService.instance;
   }
 
-  async getAllRegistrations(page = 1, limit = 10, search = '') {
+  async getAllRegistrations(page = 1, limit = 10, search = '', signal?: AbortSignal, filters: RegistrationFilters = {}) {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
       ...(search && { search }),
+      ...(filters.university && { university: filters.university }),
+      ...(filters.graduationYear && { graduationYear: filters.graduationYear }),
+      ...(filters.sort && { sort: filters.sort }),
     });
 
     const response = await fetch(`/api/registrations?${params}`, {
+      signal,
+      cache: 'no-store',
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -49,7 +68,7 @@ class RegistrationService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch registrations');
+      throw new RegistrationRequestError(error.error || 'Failed to fetch registrations', response.status);
     }
 
     return response.json() as Promise<RegistrationsResponse>;
@@ -64,7 +83,7 @@ class RegistrationService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch registration');
+      throw new RegistrationRequestError(error.error || 'Failed to fetch registration', response.status);
     }
 
     return response.json();
@@ -80,7 +99,7 @@ class RegistrationService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to create registration');
+      throw new RegistrationRequestError(error.error || 'Failed to create registration', response.status);
     }
 
     return response.json();
@@ -96,7 +115,7 @@ class RegistrationService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to update registration');
+      throw new RegistrationRequestError(error.error || 'Failed to update registration', response.status);
     }
 
     return response.json();
@@ -111,7 +130,7 @@ class RegistrationService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to delete registration');
+      throw new RegistrationRequestError(error.error || 'Failed to delete registration', response.status);
     }
 
     return response.json();
@@ -126,7 +145,7 @@ class RegistrationService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to export registrations');
+      throw new RegistrationRequestError(error.error || 'Failed to export registrations', response.status);
     }
 
     return response.blob();

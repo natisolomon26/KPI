@@ -1,20 +1,28 @@
-// components/AuthInitializer.tsx
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 
 export function AuthInitializer() {
-  const { checkAuth, isAuthenticated } = useAuthStore();
-  const hasInitialized = useRef(false);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+  const userId = useAuthStore((state) => state.user?.id);
+  const previousUserId = useRef(userId);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Only check auth once and if not already authenticated
-    if (!hasInitialized.current && !isAuthenticated) {
-      hasInitialized.current = true;
-      checkAuth();
+    // Old versions persisted authentication independently of the session cookie.
+    localStorage.removeItem('auth-storage');
+    void checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (previousUserId.current !== userId) {
+      void queryClient.cancelQueries({ queryKey: ['registrations', previousUserId.current] });
+      queryClient.removeQueries({ queryKey: ['registrations', previousUserId.current] });
+      previousUserId.current = userId;
     }
-  }, [checkAuth, isAuthenticated]);
+  }, [userId, queryClient]);
 
   return null;
 }

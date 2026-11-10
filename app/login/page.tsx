@@ -1,15 +1,14 @@
 // app/login/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, GraduationCap, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { login, isLoading, isAuthenticated, error, clearError } = useAuthStore();
+  const { login, hasInitialized, isAuthenticated, error, clearError } = useAuth({ redirectIfAuthenticated: true });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,15 +17,8 @@ export default function LoginPage() {
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
   // Show loading state
-  if (isLoading) {
+  if (!hasInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50 via-white to-blue-50">
         <div className="text-center">
@@ -69,12 +61,10 @@ export default function LoginPage() {
     try {
       const result = await login(formData.email, formData.password);
       
-      if (result.success) {
-        router.push('/dashboard');
-      } else {
+      if (!result.success) {
         setErrors({ general: result.message || 'Login failed' });
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: 'An error occurred. Please try again.' });
     } finally {
       setIsLoggingIn(false);
@@ -122,18 +112,20 @@ export default function LoginPage() {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
-            <p className="text-slate-600 mt-2">Sign in to your admin account</p>
+            <p className="text-slate-600 mt-2">Sign in to your EvaSUE workspace</p>
           </motion.div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label htmlFor="login-email" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Email Address
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="email"
+                  id="login-email"
+                  autoComplete="username"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
@@ -153,13 +145,15 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <label htmlFor="login-password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                 Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  id="login-password"
+                  autoComplete="current-password"
                   name="password"
                   value={formData.password}
                   onChange={handleInputChange}
@@ -174,6 +168,7 @@ export default function LoginPage() {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
@@ -213,16 +208,10 @@ export default function LoginPage() {
               )}
             </button>
 
-<p className="text-center text-sm text-slate-600 mt-4">
-  Don't have an account?{' '}
-  <button
-    type="button"
-    onClick={() => router.push('/register')}
-    className="text-sky-600 hover:text-sky-700 font-medium hover:underline transition-colors"
-  >
-    Create one here
-  </button>
-</p>
+            <p className="mt-4 text-center text-sm text-slate-600">
+              Joining the alumni community?{' '}
+              <Link href="/register" className="font-medium text-sky-600 hover:text-sky-700 hover:underline">Register here</Link>
+            </p>
           </form>
         </div>
       </motion.div>

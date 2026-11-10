@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const { email, password } = body;
 
     // Validate input
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
       return createAuthResponse(
         { message: 'Email and password are required' },
         400
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Find user with password field
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select('+password');
     
     if (!user) {
       return createAuthResponse(

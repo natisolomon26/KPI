@@ -7,8 +7,6 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    
     // Get token from cookies (async)
     const token = await getAuthCookie();
     
@@ -27,6 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await dbConnect();
     const user = await User.findById(payload.userId);
     if (!user) {
       return NextResponse.json(

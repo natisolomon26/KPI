@@ -1,24 +1,16 @@
-// components/ui/Card.tsx
-import { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import type { HTMLAttributes } from 'react';
 
-interface CardProps {
-  children: ReactNode;
-  className?: string;
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   hover?: boolean;
 }
 
-export function Card({ children, className = '', hover = false }: CardProps) {
+export function Card({ children, className = '', hover = false, ...props }: CardProps) {
   return (
-    <motion.div
-      whileHover={hover ? { y: -4, transition: { duration: 0.2 } } : {}}
-      className={`
-        bg-white rounded-xl border border-slate-200 shadow-sm
-        ${hover ? 'hover:shadow-md hover:border-slate-300 transition-all duration-200' : ''}
-        ${className}
-      `}
+    <div
+      className={`rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/20 ${hover ? 'transition duration-200 hover:border-slate-300 hover:shadow-md motion-safe:hover:-translate-y-0.5' : ''} ${className}`}
+      {...props}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

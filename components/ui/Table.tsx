@@ -1,45 +1,29 @@
-// components/ui/Table.tsx
-import { ReactNode } from 'react';
+import type { HTMLAttributes, TableHTMLAttributes, ThHTMLAttributes, TdHTMLAttributes } from 'react';
 
-interface TableProps {
-  children: ReactNode;
-  className?: string;
-}
-
-export function Table({ children, className = '' }: TableProps) {
+export function Table({ children, className = '', ...props }: TableHTMLAttributes<HTMLTableElement>) {
   return (
     <div className="overflow-x-auto">
-      <table className={`min-w-full divide-y divide-slate-200 ${className}`}>
-        {children}
-      </table>
+      <table className={`w-full text-left ${className}`} {...props}>{children}</table>
     </div>
   );
 }
 
-export function TableHeader({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <thead className={`bg-slate-50 ${className}`}>
-      {children}
-    </thead>
-  );
+export function TableHeader({ className = '', ...props }: HTMLAttributes<HTMLTableSectionElement>) {
+  return <thead className={`bg-slate-50/80 ${className}`} {...props} />;
 }
 
-export function TableBody({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <tbody className={`divide-y divide-slate-200 ${className}`}>{children}</tbody>;
+export function TableBody({ className = '', ...props }: HTMLAttributes<HTMLTableSectionElement>) {
+  return <tbody className={`divide-y divide-slate-100 ${className}`} {...props} />;
 }
 
-export function TableRow({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <tr className={`hover:bg-slate-50 transition-colors ${className}`}>{children}</tr>;
+export function TableRow({ className = '', ...props }: HTMLAttributes<HTMLTableRowElement>) {
+  return <tr className={`transition-colors hover:bg-sky-50/40 ${className}`} {...props} />;
 }
 
-export function TableHead({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <th className={`px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider ${className}`}>
-      {children}
-    </th>
-  );
+export function TableHead({ className = '', scope = 'col', ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
+  return <th scope={scope} className={`px-5 py-3.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 ${className}`} {...props} />;
 }
 
-export function TableCell({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <td className={`px-6 py-4 whitespace-nowrap text-sm text-slate-900 ${className}`}>{children}</td>;
+export function TableCell({ className = '', ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
+  return <td className={`px-5 py-4 text-xs text-slate-600 ${className}`} {...props} />;
 }

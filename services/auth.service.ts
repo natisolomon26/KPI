@@ -1,6 +1,5 @@
 // services/auth.service.ts
 import { 
-  User, 
   LoginCredentials, 
   RegisterCredentials, 
   AuthResponse 
@@ -98,6 +97,7 @@ class AuthService {
     try {
       const response = await fetch(`${API_BASE}/me`, {
         method: 'GET',
+        cache: 'no-store',
         headers: {
           'Content-Type': 'application/json',
         },

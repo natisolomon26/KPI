@@ -1,113 +1,44 @@
-// hooks/useRegistrations.ts
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRegistrationStore } from '@/store/registration.store';
-import { registrationService } from '@/services/registration.service';
+import { useAuthStore } from '@/store/auth.store';
+import { registrationService, RegistrationRequestError, type RegistrationFilters } from '@/services/registration.service';
 import { Registration } from '@/lib/types/api';
+
+export function useRegistrationQuery(search = '', page = 1, limit = 10, filters: RegistrationFilters = {}) {
+  const userId = useAuthStore((state) => state.user?.id);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const reset = useAuthStore((state) => state.reset);
+  const query = useQuery({
+    queryKey: ['registrations', userId, page, limit, search, filters],
+    queryFn: ({ signal }) => registrationService.getAllRegistrations(page, limit, search, signal, filters),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    placeholderData: (previousData, previousQuery) => previousQuery?.queryKey[1] === userId ? previousData : undefined,
+    retry: (count, error) => !(error instanceof RegistrationRequestError && error.status === 401) && count < 1,
+  });
+  useEffect(() => {
+    if (query.error instanceof RegistrationRequestError && query.error.status === 401) reset();
+  }, [query.error, reset]);
+  return query;
+}
 
 export function useRegistrations() {
   const queryClient = useQueryClient();
-  const { 
-    registrations, 
-    isLoading, 
-    isFetching,
-    error, 
-    pagination,
-    totalPages,
-    stats,
-    fetchRegistrations,
-    createRegistration,
-    updateRegistration,
-    deleteRegistration,
-    setError,
-    clearError,
-    setFetching
-  } = useRegistrationStore();
-
-  // Query for getting registrations with pagination and search
-  const useGetRegistrations = (search: string, page: number, options?: { enabled?: boolean }) => {
-    return useQuery({
-      queryKey: ['registrations', page, search],
-      queryFn: async () => {
-        setFetching(true);
-        try {
-          const result = await registrationService.getAllRegistrations(page, 10, search);
-          await fetchRegistrations(page, 10, search);
-          return result;
-        } finally {
-          setFetching(false);
-        }
-      },
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-      // 🔥 FIX: Disabled by default - only enable when explicitly told
-      enabled: options?.enabled ?? false,
-    });
+  const resetSession = useAuthStore((state) => state.reset);
+  const { error, createRegistration, updateRegistration, deleteRegistration, setError, clearError } = useRegistrationStore();
+  const onSuccess = () => { void queryClient.invalidateQueries({ queryKey: ['registrations'] }); };
+  const onError = (error: Error) => {
+    setError(error.message);
+    if (error instanceof RegistrationRequestError && error.status === 401) resetSession();
   };
-
-  // Mutation for creating a new registration
-  const submitRegistration = useMutation({
-    mutationFn: (data: Partial<Registration>) => createRegistration(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['registrations'] });
-    },
-    onError: (error: Error) => {
-      setError(error.message);
-    },
-  });
-
-  // Mutation for updating a registration
+  const submitRegistration = useMutation({ mutationFn: createRegistration, onSuccess, onError });
   const updateRegistrationMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Registration> }) => 
-      updateRegistration(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['registrations'] });
-    },
-    onError: (error: Error) => {
-      setError(error.message);
-    },
+    mutationFn: ({ id, data }: { id: string; data: Partial<Registration> }) => updateRegistration(id, data),
+    onSuccess, onError,
   });
-
-  // Mutation for deleting a registration
-  const deleteRegistrationMutation = useMutation({
-    mutationFn: (id: string) => deleteRegistration(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['registrations'] });
-    },
-    onError: (error: Error) => {
-      setError(error.message);
-    },
-  });
-
-  // Mutation for exporting registrations
-  const exportRegistrations = useMutation({
-    mutationFn: () => registrationService.exportRegistrations(),
-    onError: (error: Error) => {
-      setError(error.message);
-    },
-  });
-
-  return {
-    // State
-    registrations,
-    isLoading,
-    isFetching,
-    error,
-    pagination,
-    totalPages,
-    stats,
-    
-    // Query
-    useGetRegistrations,
-    
-    // Mutations
-    submitRegistration,
-    updateRegistration: updateRegistrationMutation,
-    deleteRegistration: deleteRegistrationMutation,
-    exportRegistrations,
-    
-    // Actions
-    fetchRegistrations,
-    setError,
-    clearError,
-  };
+  const deleteRegistrationMutation = useMutation({ mutationFn: deleteRegistration, onSuccess, onError });
+  const exportRegistrations = useMutation({ mutationFn: () => registrationService.exportRegistrations(), onError });
+  return { error, submitRegistration, updateRegistration: updateRegistrationMutation,
+    deleteRegistration: deleteRegistrationMutation, exportRegistrations, setError, clearError };
 }
