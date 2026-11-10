@@ -1,11 +1,11 @@
 import { create } from 'zustand';
-import { User, AuthState, RegisterCredentials } from '@/types/auth.types';
+import { User, AuthState, RegisterCredentials, AuthActionResult } from '@/types/auth.types';
 import { authService } from '@/services/auth.service';
 
 interface AuthStore extends AuthState {
   hasInitialized: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  register: (data: RegisterCredentials) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<AuthActionResult>;
+  register: (data: RegisterCredentials) => Promise<AuthActionResult>;
   logout: () => Promise<void>;
   checkAuth: (force?: boolean) => Promise<void>;
   setUser: (user: User | null) => void;
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
     const message = response.message || 'Login failed';
     set({ ...signedOut, error: message });
-    return { success: false, message };
+    return { success: false, message, fieldErrors: response.fieldErrors };
   },
 
   register: async (data) => {
@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
     const message = response.message || 'Registration failed';
     set({ ...signedOut, error: message });
-    return { success: false, message };
+    return { success: false, message, fieldErrors: response.fieldErrors };
   },
 
   logout: async () => {

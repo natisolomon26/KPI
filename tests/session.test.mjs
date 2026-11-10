@@ -359,3 +359,102 @@ test('analytics service forwards filters and cancellation and preserves authoriz
     await assert.rejects(analyticsService.get({ range: 'all' }), error => error instanceof AnalyticsRequestError && error.status === 403);
   } finally { global.fetch = originalFetch; }
 });
+
+test('account validation normalizes names/email, preserves passwords and drops privileged fields', () => {
+  const { validateRegistration } = loadTs('lib/auth-validation.ts');
+  const result = validateRegistration({ firstName: ' Hana ', lastName: ' Tesfaye ', email: ' HANA+alumni@Example.technology ', password: '  password  ', role: 'admin', university: 'Example University' });
+  assert.equal(result.success, true);
+  assert.deepEqual(result.data, { firstName: 'Hana', lastName: 'Tesfaye', email: 'hana+alumni@example.technology', password: '  password  ' });
+  assert.equal('role' in result.data, false);
+  assert.equal('university' in result.data, false);
+});
+
+test('account validation rejects missing, invalid, short and overlong bcrypt passwords', () => {
+  const { validateRegistration } = loadTs('lib/auth-validation.ts');
+  const base = { firstName: 'Hana', lastName: 'Tesfaye', email: 'hana@example.com', password: 'password123' };
+  assert.equal(validateRegistration(null).success, false);
+  assert.equal(validateRegistration({ ...base, email: 'not-email' }).success, false);
+  assert.equal(validateRegistration({ ...base, firstName: '   ' }).success, false);
+  assert.equal(validateRegistration({ ...base, password: '1234567' }).success, false);
+  assert.equal(validateRegistration({ ...base, password: '        ' }).success, false);
+  assert.equal(validateRegistration({ ...base, password: 'a'.repeat(72) }).success, true);
+  assert.equal(validateRegistration({ ...base, password: 'a'.repeat(73) }).success, false);
+  assert.equal(validateRegistration({ ...base, password: '🔒'.repeat(19) }).success, false);
+});
+
+function accountEndpoint(model, connect = async () => {}) {
+  const { createAuthResponse } = loadTs('lib/auth.ts');
+  let claims;
+  const { POST } = loadTs('app/api/auth/register/route.ts', {
+    '@/lib/mongodb': connect,
+    '@/models/User': model,
+    '@/lib/auth': { createAuthResponse, generateToken: value => { claims = value; return 'signup-test-session'; } },
+  });
+  return { POST, claims: () => claims };
+}
+const signup = { firstName: 'Hana', lastName: 'Tesfaye', email: 'hana@example.com', password: 'password123' };
+
+test('public signup creates a regular user and establishes a cookie-backed session', async () => {
+  let saved;
+  const endpoint = accountEndpoint({
+    findOne: async () => null,
+    create: async value => { saved = value; return { ...value, _id: 'created-user', password: 'hashed-secret' }; },
+  });
+  const response = await endpoint.POST({ json: async () => ({ ...signup, email: ' HANA@EXAMPLE.COM ', role: 'admin' }) });
+  assert.equal(response.status, 201);
+  assert.equal(saved.role, 'user');
+  assert.equal(saved.email, 'hana@example.com');
+  assert.equal(endpoint.claims().role, 'user');
+  const body = await response.json();
+  assert.equal(body.user.role, 'user');
+  assert.equal(body.user.id, 'created-user');
+  assert.equal('password' in body.user, false);
+  assert.match(response.headers.get('set-cookie'), /token=signup-test-session/);
+  assert.match(response.headers.get('set-cookie'), /HttpOnly/);
+});
+
+test('invalid or malformed signup is rejected before connecting to the database', async () => {
+  let connected = false;
+  const endpoint = accountEndpoint({}, async () => { connected = true; });
+  const invalid = await endpoint.POST({ json: async () => ({ ...signup, password: 'short' }) });
+  assert.equal(invalid.status, 400);
+  assert.ok((await invalid.json()).fieldErrors.password);
+  const malformed = await endpoint.POST({ json: async () => { throw new SyntaxError('bad JSON'); } });
+  assert.equal(malformed.status, 400);
+  assert.equal(connected, false);
+});
+
+test('signup reports duplicate emails consistently, including a concurrent unique-index failure', async () => {
+  const duplicate = accountEndpoint({ findOne: async () => ({ _id: 'existing' }) });
+  const response = await duplicate.POST({ json: async () => signup });
+  assert.equal(response.status, 409);
+  assert.ok((await response.json()).fieldErrors.email);
+  const raced = accountEndpoint({ findOne: async () => null, create: async () => { throw { code: 11000 }; } });
+  const conflict = await raced.POST({ json: async () => signup });
+  assert.equal(conflict.status, 409);
+});
+
+test('user schema accepts modern email addresses and existing short-password hashes still verify', async () => {
+  const User = loadTs('models/User.ts').default;
+  const bcrypt = await import('bcryptjs');
+  const account = new User({ firstName: 'Hana', lastName: 'Tesfaye', email: 'hana+alumni@example.technology', password: bcrypt.hashSync('old123', 4) });
+  await account.validate();
+  assert.equal(await account.comparePassword('old123'), true);
+  assert.equal(await account.comparePassword('wrong'), false);
+});
+
+test('signup service and store retain actionable field errors from the backend', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => Response.json({ message: 'Email already registered', fieldErrors: { email: 'Sign in instead.' } }, { status: 409 });
+  try {
+    const { authService } = loadTs('services/auth.service.ts');
+    const response = await authService.register(signup);
+    assert.equal(response.success, false);
+    assert.equal(response.fieldErrors.email, 'Sign in instead.');
+    const auth = store({ register: async () => response });
+    const result = await auth.getState().register(signup);
+    assert.equal(result.fieldErrors.email, 'Sign in instead.');
+    assert.equal(auth.getState().isLoading, false);
+    assert.equal(auth.getState().isAuthenticated, false);
+  } finally { global.fetch = originalFetch; }
+});

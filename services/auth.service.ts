@@ -38,6 +38,7 @@ class AuthService {
         return {
           success: false,
           message: data.message || 'Login failed',
+          fieldErrors: data.fieldErrors,
         };
       }
 
@@ -74,6 +75,7 @@ class AuthService {
         return {
           success: false,
           message: result.message || 'Registration failed',
+          fieldErrors: result.fieldErrors,
         };
       }
 

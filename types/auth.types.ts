@@ -19,13 +19,18 @@ export interface RegisterCredentials {
   password: string;
   firstName: string;
   lastName: string;
-  role?: 'user' | 'admin';
 }
 
-export interface AuthResponse {
+export type RegistrationErrors = Partial<Record<keyof RegisterCredentials | 'confirmPassword', string>>;
+
+export interface AuthActionResult {
   success: boolean;
-  user?: User;
   message?: string;
+  fieldErrors?: RegistrationErrors;
+}
+
+export interface AuthResponse extends AuthActionResult {
+  user?: User;
 }
 
 export interface AuthState {

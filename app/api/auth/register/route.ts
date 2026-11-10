@@ -1,70 +1,35 @@
-// app/api/auth/register/route.ts
 import { NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { generateToken, createAuthResponse } from '@/lib/auth';
+import { validateRegistration } from '@/lib/auth-validation';
+
+const duplicateEmail = () => createAuthResponse({
+  message: 'An account with this email already exists. Sign in instead.',
+  fieldErrors: { email: 'This email is already registered.' },
+}, 409);
 
 export async function POST(req: NextRequest) {
+  const validation = validateRegistration(await req.json().catch(() => null));
+  if (!validation.success) return createAuthResponse({
+    message: 'Please check the highlighted fields.', fieldErrors: validation.fieldErrors,
+  }, 400);
+
   try {
     await dbConnect();
-    
-    const body = await req.json().catch(() => ({}));
-    const { email, password, firstName, lastName, role } = body;
+    const { email, password, firstName, lastName } = validation.data;
+    if (await User.findOne({ email })) return duplicateEmail();
 
-    // Validate input
-    if (!email || !password || !firstName || !lastName) {
-      return createAuthResponse(
-        { message: 'All fields are required' },
-        400
-      );
-    }
-
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return createAuthResponse(
-        { message: 'User with this email already exists' },
-        400
-      );
-    }
-
-    // Create user
-    const user = await User.create({
-      email,
-      password,
-      firstName,
-      lastName,
-      role: role || 'user',
-    });
-
-    // Generate token
-    const token = generateToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    });
-
-    // Return user data and set cookie
-    return createAuthResponse(
-      {
-        message: 'Registration successful',
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-        },
-      },
-      201,
-      token
-    );
-
+    // Public signup always creates a regular account; roles are not client-controlled.
+    const user = await User.create({ email, password, firstName, lastName, role: 'user' });
+    const token = generateToken({ userId: user._id.toString(), email: user.email, role: user.role });
+    return createAuthResponse({
+      message: 'Your account is ready.',
+      user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
+    }, 201, token);
   } catch (error) {
-    console.error('Registration error:', error);
-    return createAuthResponse(
-      { message: 'Internal server error' },
-      500
-    );
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) return duplicateEmail();
+    console.error('Account registration failed:', error);
+    return createAuthResponse({ message: 'We could not create your account. Please try again.' }, 500);
   }
 }
